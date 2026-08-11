@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ln_replica
+    ports:
+      # Host port 5434, not 5432 — a native Postgres service already owns
+      # 5432 on the host in local dev environments; avoid clashing with it.
+      - "5434:5432"
+    volumes:
+      - ln_replica_pgdata:/var/lib/postgresql/data
+
+volumes:
+  ln_replica_pgdata:
