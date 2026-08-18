@@ -71,12 +71,6 @@ COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 # Copy compiled application
 COPY --from=builder /app/dist ./dist
 
-# Application listens on 3000 by default
 EXPOSE 3000
 
-# Existing deployment flow:
-# 1. Apply pending Prisma migrations
-# 2. Start the application
-#
-# Seed is intentionally NOT executed automatically.
-CMD ["sh", "-c", "npx prisma migrate deploy && exec node dist/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && exec node dist/src/server.js"]
