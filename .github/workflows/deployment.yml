@@ -68,6 +68,7 @@ jobs:
           find lexis-nexis -type f -name "*.yaml" -exec sed -i "s|IMAGE_TAG|$IMAGE_TAG|g" {} +
           echo "Verifying image tags"
           grep -R "image:" lexis-nexis/
+          kubectl apply -f lexis-nexis/ingress.yaml -n $NAMESPACE
           kubectl apply -f lexis-nexis/lexis-nexis.yaml -n $NAMESPACE
           IMAGE=$REPOSITORY_URI:$IMAGE_TAG
           kubectl set image deployment/$DEPLOYMENT_NAME \
