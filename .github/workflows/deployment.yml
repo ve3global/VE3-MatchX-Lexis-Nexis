@@ -19,7 +19,7 @@ jobs:
       DOCKERFILE: lexis-nexis/Dockerfile
       NAMESPACE: deploy
       DEPLOYMENT_NAME: matchx-lexis-nexis
-      CONTAINER_NAME: ln-replica
+      CONTAINER_NAME: lexis-nexis
 
     steps:
 
