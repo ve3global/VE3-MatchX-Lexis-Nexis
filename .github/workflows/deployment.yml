@@ -18,7 +18,7 @@ jobs:
       IMAGE_REPO_NAME: ${{ secrets.LN_IMAGE_REPO_NAME  }}
       DOCKERFILE: lexis-nexis/Dockerfile
       NAMESPACE: deploy
-      DEPLOYMENT_NAME: matchx-ln-replica
+      DEPLOYMENT_NAME: matchx-lexis-nexis
       CONTAINER_NAME: ln-replica
 
     steps:
