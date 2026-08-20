@@ -113,7 +113,7 @@ describe('webhooks', () => {
       .set(authed())
       .send({
         forename: 'Bella',
-        surname: `RC${Date.now()}`,
+        surname: 'RemoteCheckWebhook',
         dob: '1980-01-01',
         address: { address1: '1 Test Street', postcode: 'TE1 1ST' },
         enduser_agreement: true,

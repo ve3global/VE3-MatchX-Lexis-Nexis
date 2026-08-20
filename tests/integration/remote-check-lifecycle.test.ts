@@ -35,13 +35,13 @@ describe('remote-check lifecycle', () => {
   }
 
   it('rejects an unauthenticated request', async () => {
-    const id = await createInlineReport(`RC${Date.now()}`);
+    const id = await createInlineReport('RemoteCheckUnauth');
     const res = await request(app).post(`/reports/${id}/actions/remote-check`);
     expect(res.status).toBe(401);
   });
 
   it('starts a transaction, rejecting a second start while in progress (1312)', async () => {
-    const id = await createInlineReport(`RC${Date.now()}a`);
+    const id = await createInlineReport('RemoteCheckStart');
 
     const startRes = await request(app)
       .post(`/reports/${id}/actions/remote-check`)
@@ -58,7 +58,7 @@ describe('remote-check lifecycle', () => {
   });
 
   it('resolves results deterministically and idempotently, then blocks re-running remote-check (1313) and any other action (1325)', async () => {
-    const id = await createInlineReport(`RC${Date.now()}b`);
+    const id = await createInlineReport('RemoteCheckResolve');
     await request(app).post(`/reports/${id}/actions/remote-check`).set(authed()).send({});
 
     const firstResults = await request(app)
@@ -92,7 +92,7 @@ describe('remote-check lifecycle', () => {
   });
 
   it('cancel: 422/1321 with no transaction, succeeds while in progress, allows restarting after cancel', async () => {
-    const id = await createInlineReport(`RC${Date.now()}c`);
+    const id = await createInlineReport('RemoteCheckCancel');
 
     const noTransactionRes = await request(app)
       .post(`/reports/${id}/actions/remote-check/cancel`)
@@ -115,7 +115,7 @@ describe('remote-check lifecycle', () => {
   });
 
   it('resend: 422/1338 when not in progress, succeeds while in progress', async () => {
-    const id = await createInlineReport(`RC${Date.now()}d`);
+    const id = await createInlineReport('RemoteCheckResend');
 
     const noTransactionRes = await request(app)
       .post(`/reports/${id}/actions/remote-check/resend`)
@@ -137,7 +137,7 @@ describe('remote-check lifecycle', () => {
   });
 
   it('pdf: 422 before completion, a stub payload after', async () => {
-    const id = await createInlineReport(`RC${Date.now()}e`);
+    const id = await createInlineReport('RemoteCheckPdf');
     await request(app).post(`/reports/${id}/actions/remote-check`).set(authed()).send({});
 
     const tooEarlyRes = await request(app)

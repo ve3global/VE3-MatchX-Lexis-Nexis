@@ -11,22 +11,30 @@ const INLINE_FIELDS = [
 ] as const;
 
 const addressSchema = z.object({
-  address1: z.string().max(255).optional(),
-  address2: z.string().max(255).optional(),
-  address3: z.string().max(255).optional(),
-  address4: z.string().max(255).optional(),
-  address5: z.string().max(255).optional(),
-  postcode: z.string().max(255).optional(),
+  address1: z.string().max(64).optional(),
+  address2: z.string().max(64).optional(),
+  address3: z.string().max(64).optional(),
+  address4: z.string().max(64).optional(),
+  address5: z.string().max(64).optional(),
+  postcode: z.string().max(8).optional(),
 });
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+// Unicode letter runs joined by at most one ASCII apostrophe/hyphen/space at
+// a time — this single pattern rejects leading/trailing separators AND
+// consecutive separators as a side effect of requiring a letter run on both
+// sides of every separator (see IDU_REST_FAQs_Input_Validation (Aug26).pdf).
+// Smart quotes and en/em dashes fall through since they're neither \p{L}
+// nor the specific ASCII chars in the class.
+const NAME_RE = /^\p{L}+(?:['\- ]\p{L}+)*$/u;
+
 export const createReportSchema = z
   .object({
     report_type_id: z.string().uuid().optional(),
-    forename: z.string().max(255).optional(),
-    middlename: z.string().max(255).optional(),
-    surname: z.string().max(255).optional(),
+    forename: z.string().max(64).regex(NAME_RE).optional(),
+    middlename: z.string().max(64).regex(NAME_RE).optional(),
+    surname: z.string().max(64).regex(NAME_RE).optional(),
     dob: z.string().optional(),
     address: addressSchema.optional(),
     reference: z.string().max(255).optional(),
@@ -114,9 +122,9 @@ export type CreateReportRequest = z.infer<typeof createReportSchema>;
 
 export const CREATE_REPORT_ERROR_CODES: FieldErrorCodeMap = {
   report_type_id: { string: 1006 },
-  forename: { string: 1008, max: 1128 },
-  middlename: { string: 1009, max: 1129 },
-  surname: { string: 1011, max: 1130 },
+  forename: { string: 1008, max: 1128, invalid: 1286 },
+  middlename: { string: 1009, max: 1129, invalid: 1288 },
+  surname: { string: 1011, max: 1130, invalid: 1287 },
   reference: { string: 1049, max: 1137 },
   enduser_agreement: { string: 1056 },
   test: { string: 1319 },

@@ -56,6 +56,117 @@ describe('reports', () => {
     expect(res.body.errors['address.postcode'][0].code).toBe(1054);
   });
 
+  it('rejects invalid characters in name fields with the field-specific code', async () => {
+    const res = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: 'John123', middlename: 'Neil$', surname: 'Jones,' });
+
+    expect(res.status).toBe(422);
+    expect(res.body.errors.forename[0].code).toBe(1286);
+    expect(res.body.errors.surname[0].code).toBe(1287);
+    expect(res.body.errors.middlename[0].code).toBe(1288);
+  });
+
+  it('rejects leading, trailing, and consecutive separators in name fields', async () => {
+    const leading = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: '-Smith' });
+    expect(leading.body.errors.forename[0].code).toBe(1286);
+
+    const trailing = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: 'Smith-' });
+    expect(trailing.body.errors.forename[0].code).toBe(1286);
+
+    const consecutiveHyphens = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: 'Joh--n' });
+    expect(consecutiveHyphens.body.errors.forename[0].code).toBe(1286);
+
+    const consecutiveApostrophes = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: "O''Connor" });
+    expect(consecutiveApostrophes.body.errors.forename[0].code).toBe(1286);
+
+    const consecutiveSpaces = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: 'John  Smith' });
+    expect(consecutiveSpaces.body.errors.forename[0].code).toBe(1286);
+  });
+
+  it('rejects smart apostrophes and en/em dashes in name fields (visually similar, not ASCII)', async () => {
+    const curlyApostrophe = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: 'O’Connor' });
+    expect(curlyApostrophe.body.errors.forename[0].code).toBe(1286);
+
+    const enDash = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: 'Mary–Jane' });
+    expect(enDash.body.errors.forename[0].code).toBe(1286);
+  });
+
+  it('accepts valid Unicode letters and correctly-placed hyphen/apostrophe in name fields', async () => {
+    const res = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: 'García', middlename: "O'Brien", surname: 'Smith-Jones' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.forename).toBe('García');
+    expect(res.body.data.middlename).toBe("O'Brien");
+    expect(res.body.data.surname).toBe('Smith-Jones');
+  });
+
+  it('caps forename/middlename/surname at 64 characters', async () => {
+    const tooLong = 'a'.repeat(65);
+    const exactly64 = 'a'.repeat(64);
+
+    const overLimit = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: tooLong });
+    expect(overLimit.status).toBe(422);
+    expect(overLimit.body.errors.forename[0].code).toBe(1128);
+
+    const atLimit = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: exactly64 });
+    expect(atLimit.status).toBe(201);
+    expect(atLimit.body.data.forename).toBe(exactly64);
+  });
+
+  it('caps address1-5 at 64 characters and address.postcode at 8', async () => {
+    const overLimitAddress = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({
+        ...validInline,
+        address: { address1: 'a'.repeat(65), postcode: 'BS7 8EU' },
+      });
+    expect(overLimitAddress.status).toBe(422);
+    expect(overLimitAddress.body.errors['address.address1'][0].code).toBe(1131);
+
+    const overLimitPostcode = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({
+        ...validInline,
+        address: { address1: '204 Julius Road', postcode: 'BS789EUXY' },
+      });
+    expect(overLimitPostcode.status).toBe(422);
+    expect(overLimitPostcode.body.errors['address.postcode'][0].code).toBe(1136);
+  });
+
   it('rejects report_type_id combined with inline fields', async () => {
     const reportTypeRes = await request(app)
       .post('/report-types')
@@ -210,7 +321,7 @@ describe('reports', () => {
   });
 
   it('lists reports in the paginator envelope, filterable by surname', async () => {
-    const surname = `Unique${Date.now()}`;
+    const surname = 'UniqueSurname';
     await request(app)
       .post('/reports')
       .set(authed())
@@ -235,7 +346,9 @@ describe('reports', () => {
   });
 
   it('filters by postcode (JSON path) and by date_from/date_to', async () => {
-    const postcode = `PC${Date.now()}`;
+    // postcode is capped at 8 characters (see reports/schema.ts) — last 6
+    // digits of the timestamp keeps this unique across runs while fitting.
+    const postcode = `P${String(Date.now()).slice(-6)}`;
     const createRes = await request(app)
       .post('/reports')
       .set(authed())
