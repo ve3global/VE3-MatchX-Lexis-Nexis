@@ -31,7 +31,7 @@ describe('remote-check lifecycle', () => {
         address: { address1: '1 Test Street', postcode: 'TE1 1ST' },
         enduser_agreement: true,
       });
-    return res.body.id;
+    return res.body.data.id;
   }
 
   it('rejects an unauthenticated request', async () => {
@@ -88,7 +88,7 @@ describe('remote-check lifecycle', () => {
     expect(otherActionRes.body.errors._report[0].code).toBe(1325);
 
     const reportRes = await request(app).get(`/reports/${id}`).set(authed());
-    expect(reportRes.body['remote-check']).toHaveProperty('remote_check_completed', true);
+    expect(reportRes.body.data['remote-check']).toHaveProperty('remote_check_completed', true);
   });
 
   it('cancel: 422/1321 with no transaction, succeeds while in progress, allows restarting after cancel', async () => {

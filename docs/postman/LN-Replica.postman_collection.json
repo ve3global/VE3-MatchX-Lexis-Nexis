@@ -24,6 +24,1014 @@
   ],
   "item": [
     {
+      "name": "Run 1 - Happy Path (Demo)",
+      "description": "Clean end-to-end walkthrough, zero errors by design: auth, address lookup, scorecard + report type setup, a report that auto-completes and self-scores, an individually-run action (credit-check), and its audit trail. Standalone — acquires its own token, safe to run on its own.",
+      "item": [
+        {
+          "name": "POST /oauth/token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/oauth/token",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_id\": \"{{client_id}}\",\n  \"client_secret\": \"{{client_secret}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('access_token', pm.response.json()[\"access_token\"]);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /address-lookup — doc sample postcode",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/address-lookup",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"postcode\": \"BS7 8EU\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /scorecards — create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/scorecards",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo Scorecard {{$timestamp}}\",\n  \"pass_threshold\": 20,\n  \"fail_threshold\": -20,\n  \"groups\": [\n    {\n      \"group_name\": \"screening\",\n      \"min_score\": 0,\n      \"rules\": [\n        {\n          \"attribute\": \"sanction\",\n          \"match_score\": -100,\n          \"no_match_score\": 20\n        }\n      ]\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('demo_scorecard_id', pm.response.json()[\"data\"][\"id\"]);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /report-types — create with scorecard + primary action",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo Report Type {{$timestamp}}\",\n  \"scorecard_id\": \"{{demo_scorecard_id}}\",\n  \"primary_actions\": [\n    \"sanction-screening\"\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('demo_report_type_id', pm.response.json()[\"data\"][\"id\"]);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /reports — via report_type_id (auto-completes, self-scores)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/reports",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"report_type_id\": \"{{demo_report_type_id}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('completes automatically', () => pm.expect(pm.response.json()[\"data\"][\"status\"]).to.eql(\"COMPLETE\"));",
+                  "pm.test('assessment computed', () => pm.expect(pm.response.json()[\"data\"][\"assessment\"]).to.not.be.undefined);",
+                  "pm.collectionVariables.set('demo_report_id', pm.response.json()[\"data\"][\"id\"]);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /reports/{id} — fetch",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/reports/{{demo_report_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /reports/{id}/actions/credit-check — run individually",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/reports/{{demo_report_id}}/actions/credit-check",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('credit_active present', () => pm.expect(pm.response.json()[\"data\"][\"credit-check\"][\"credit_active\"]).to.not.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /reports/{id}/audit — full trail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/reports/{{demo_report_id}}/audit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Run 2 - Rate Limit 429 (Demo)",
+      "description": "Bursts 20 rapid GET /report-types calls against the same client. The server allows 10/second (src/middleware/rateLimiter.ts) — a replica-only extension, not from the real doc (see README.md) — so calls 11-20 are expected to come back 429. Standalone — acquires its own token.",
+      "item": [
+        {
+          "name": "POST /oauth/token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/oauth/token",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_id\": \"{{client_id}}\",\n  \"client_secret\": \"{{client_secret}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('access_token', pm.response.json()[\"access_token\"]);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 1/20 (expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 2/20 (expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 3/20 (expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 4/20 (expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 5/20 (expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 6/20 (expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 7/20 (expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 8/20 (expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 9/20 (expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 10/20 (expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 11/20 (expect 429)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 429', () => pm.response.to.have.status(429));",
+                  "pm.test('rate-limit message present', () => pm.expect(pm.response.json()[\"message\"]).to.not.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 12/20 (expect 429)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 429', () => pm.response.to.have.status(429));",
+                  "pm.test('rate-limit message present', () => pm.expect(pm.response.json()[\"message\"]).to.not.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 13/20 (expect 429)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 429', () => pm.response.to.have.status(429));",
+                  "pm.test('rate-limit message present', () => pm.expect(pm.response.json()[\"message\"]).to.not.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 14/20 (expect 429)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 429', () => pm.response.to.have.status(429));",
+                  "pm.test('rate-limit message present', () => pm.expect(pm.response.json()[\"message\"]).to.not.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 15/20 (expect 429)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 429', () => pm.response.to.have.status(429));",
+                  "pm.test('rate-limit message present', () => pm.expect(pm.response.json()[\"message\"]).to.not.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 16/20 (expect 429)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 429', () => pm.response.to.have.status(429));",
+                  "pm.test('rate-limit message present', () => pm.expect(pm.response.json()[\"message\"]).to.not.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 17/20 (expect 429)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 429', () => pm.response.to.have.status(429));",
+                  "pm.test('rate-limit message present', () => pm.expect(pm.response.json()[\"message\"]).to.not.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 18/20 (expect 429)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 429', () => pm.response.to.have.status(429));",
+                  "pm.test('rate-limit message present', () => pm.expect(pm.response.json()[\"message\"]).to.not.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 19/20 (expect 429)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 429', () => pm.response.to.have.status(429));",
+                  "pm.test('rate-limit message present', () => pm.expect(pm.response.json()[\"message\"]).to.not.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — burst call 20/20 (expect 429)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 429', () => pm.response.to.have.status(429));",
+                  "pm.test('rate-limit message present', () => pm.expect(pm.response.json()[\"message\"]).to.not.be.undefined);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Run 3 - Validation Errors (Demo)",
+      "description": "Deliberately bad input across address lookup, report/report-type/scorecard creation, and running an action against a report that does not exist — every request here is expected to fail with a specific error code. Standalone — acquires its own token.",
+      "item": [
+        {
+          "name": "POST /oauth/token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/oauth/token",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_id\": \"{{client_id}}\",\n  \"client_secret\": \"{{client_secret}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('access_token', pm.response.json()[\"access_token\"]);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /address-lookup — missing postcode and full_address (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/address-lookup",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('code 1319 on _lookup', () => pm.expect(pm.response.json().errors[\"_lookup\"][0].code).to.eql(1319));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /address-lookup — wrong type for postcode (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/address-lookup",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"postcode\": 123\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('code 1032 on postcode', () => pm.expect(pm.response.json().errors[\"postcode\"][0].code).to.eql(1032));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /reports — inline, missing every required field (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/reports",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('forename required (1007)', () => pm.expect(pm.response.json().errors[\"forename\"][0].code).to.eql(1007));",
+                  "pm.test('surname required (1010)', () => pm.expect(pm.response.json().errors[\"surname\"][0].code).to.eql(1010));",
+                  "pm.test('enduser_agreement required (1055)', () => pm.expect(pm.response.json().errors[\"enduser_agreement\"][0].code).to.eql(1055));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /report-types — nonexistent scorecard_id (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bad Scorecard RT {{$timestamp}}\",\n  \"scorecard_id\": \"00000000-0000-0000-0000-000000000000\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('code 1179 on scorecard_id', () => pm.expect(pm.response.json().errors[\"scorecard_id\"][0].code).to.eql(1179));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /scorecards — invalid rule attribute (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/scorecards",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bad Attribute SC {{$timestamp}}\",\n  \"groups\": [\n    {\n      \"group_name\": \"g\",\n      \"min_score\": 0,\n      \"rules\": [\n        {\n          \"attribute\": \"not_a_real_attribute\",\n          \"match_score\": 1,\n          \"no_match_score\": -1\n        }\n      ]\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('code 1171', () => pm.expect(pm.response.json().errors[\"groups.0.rules.0.attribute\"][0].code).to.eql(1171));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /reports/{id}/actions/credit-check — unknown report id (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/reports/00000000-0000-0000-0000-000000000000/actions/credit-check",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "00 - Health",
       "item": [
         {
@@ -580,9 +1588,9 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 201', () => pm.response.to.have.status(201));",
-                  "pm.test('starts as DRAFT', () => pm.expect(pm.response.json()[\"status\"]).to.eql(\"DRAFT\"));",
-                  "pm.test('starts at version 1', () => pm.expect(pm.response.json()[\"version\"]).to.eql(1));",
-                  "pm.collectionVariables.set('scorecard_id', pm.response.json()[\"id\"]);"
+                  "pm.test('starts as DRAFT', () => pm.expect(pm.response.json()[\"data\"][\"status\"]).to.eql(\"DRAFT\"));",
+                  "pm.test('starts at version 1', () => pm.expect(pm.response.json()[\"data\"][\"version\"]).to.eql(1));",
+                  "pm.collectionVariables.set('scorecard_id', pm.response.json()[\"data\"][\"id\"]);"
                 ]
               }
             }
@@ -730,7 +1738,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('version bumped to 2', () => pm.expect(pm.response.json()[\"version\"]).to.eql(2));"
+                  "pm.test('version bumped to 2', () => pm.expect(pm.response.json()[\"data\"][\"version\"]).to.eql(2));"
                 ]
               }
             }
@@ -755,7 +1763,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('status PUBLISHED', () => pm.expect(pm.response.json()[\"status\"]).to.eql(\"PUBLISHED\"));"
+                  "pm.test('status PUBLISHED', () => pm.expect(pm.response.json()[\"data\"][\"status\"]).to.eql(\"PUBLISHED\"));"
                 ]
               }
             }
@@ -793,8 +1801,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 201', () => pm.response.to.have.status(201));",
-                  "pm.test('starts ACTIVE', () => pm.expect(pm.response.json()[\"status\"]).to.eql(\"ACTIVE\"));",
-                  "pm.collectionVariables.set('report_type_id', pm.response.json()[\"id\"]);"
+                  "pm.test('starts ACTIVE', () => pm.expect(pm.response.json()[\"data\"][\"status\"]).to.eql(\"ACTIVE\"));",
+                  "pm.collectionVariables.set('report_type_id', pm.response.json()[\"data\"][\"id\"]);"
                 ]
               }
             }
@@ -967,7 +1975,81 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('description updated', () => pm.expect(pm.response.json()[\"description\"]).to.eql(\"Updated via Postman\"));"
+                  "pm.test('description updated', () => pm.expect(pm.response.json()[\"data\"][\"description\"]).to.eql(\"Updated via Postman\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — filter by username (no match for a made-up one)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?username=no-such-user-%7B%7B%24timestamp%7D%7D"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('empty result set', () => pm.expect(pm.response.json()[\"data\"]).to.eql([]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — order_by name desc",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?order_by=name&order=desc"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — invalid order_by (422/1319)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/report-types?order_by=not_a_real_column"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('code 1319', () => pm.expect(pm.response.json().errors[\"order_by\"][0].code).to.eql(1319));"
                 ]
               }
             }
@@ -1040,8 +2122,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 201', () => pm.response.to.have.status(201));",
-                  "pm.test('starts STARTED', () => pm.expect(pm.response.json()[\"status\"]).to.eql(\"STARTED\"));",
-                  "pm.collectionVariables.set('report_id', pm.response.json()[\"id\"]);"
+                  "pm.test('starts STARTED', () => pm.expect(pm.response.json()[\"data\"][\"status\"]).to.eql(\"STARTED\"));",
+                  "pm.collectionVariables.set('report_id', pm.response.json()[\"data\"][\"id\"]);"
                 ]
               }
             }
@@ -1107,9 +2189,9 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 201', () => pm.response.to.have.status(201));",
-                  "pm.test('completes automatically (no-body action)', () => pm.expect(pm.response.json()[\"status\"]).to.eql(\"COMPLETE\"));",
-                  "pm.test('assessment computed from the attached scorecard', () => pm.expect(pm.response.json()[\"assessment\"]).to.not.be.undefined);",
-                  "pm.collectionVariables.set('scored_report_id', pm.response.json()[\"id\"]);"
+                  "pm.test('completes automatically (no-body action)', () => pm.expect(pm.response.json()[\"data\"][\"status\"]).to.eql(\"COMPLETE\"));",
+                  "pm.test('assessment computed from the attached scorecard', () => pm.expect(pm.response.json()[\"data\"][\"assessment\"]).to.not.be.undefined);",
+                  "pm.collectionVariables.set('scored_report_id', pm.response.json()[\"data\"][\"id\"]);"
                 ]
               }
             }
@@ -1135,6 +2217,31 @@
                 "exec": [
                   "pm.test('status 200', () => pm.response.to.have.status(200));",
                   "pm.test('meta present', () => pm.expect(pm.response.json()[\"meta\"]).to.not.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /reports — uklexid filter (accepted, matches nothing — no lexid concept)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/reports?uklexid=123"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('empty result set', () => pm.expect(pm.response.json()[\"data\"]).to.eql([]));"
                 ]
               }
             }
@@ -1310,7 +2417,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 201', () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set('sanctioned_report_id', pm.response.json()[\"id\"]);"
+                  "pm.collectionVariables.set('sanctioned_report_id', pm.response.json()[\"data\"][\"id\"]);"
                 ]
               }
             }
@@ -1376,7 +2483,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 201', () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set('death_report_id', pm.response.json()[\"id\"]);"
+                  "pm.collectionVariables.set('death_report_id', pm.response.json()[\"data\"][\"id\"]);"
                 ]
               }
             }
@@ -1606,7 +2713,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 201', () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set('rc_report_id', pm.response.json()[\"id\"]);"
+                  "pm.collectionVariables.set('rc_report_id', pm.response.json()[\"data\"][\"id\"]);"
                 ]
               }
             }
@@ -1846,7 +2953,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 201', () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set('rc_cancel_report_id', pm.response.json()[\"id\"]);"
+                  "pm.collectionVariables.set('rc_cancel_report_id', pm.response.json()[\"data\"][\"id\"]);"
                 ]
               }
             }

@@ -86,11 +86,14 @@ claiming doc parity. Currently:
 - `otp_code` field on `otp-email`/`otp-sms` action results — a real send-
   OTP response would never echo the code, but this replica has no real
   inbox/SMS gateway for a caller to read it from (EPIC-7c)
-- The entire `POST/GET/PATCH/DELETE /webhooks*` outbound delivery flow
-  never makes a real HTTP call — `test`/`retry` simulate a deterministic
-  outcome instead, since a webhook's whole purpose is calling an
-  arbitrary caller-supplied URL, which is an SSRF risk to actually do
-  from a replica (EPIC-10)
+- `PUT /users/self/webhook-url` — sets the client's webhook URL; the doc
+  documents rotating a secret once a URL exists (`PUT
+  /users/self/webhook-secret`) but never how the URL itself gets set in
+  the first place (EPIC-10)
+- Webhook message delivery (`test`/`retry`/automatic events) never makes
+  a real HTTP call — outcomes are simulated deterministically instead,
+  since actually calling an arbitrary caller-supplied URL from a replica
+  is an SSRF risk (EPIC-10)
 - `GET /reports/{id}/actions/remote-check/{results,pdf}`,
   `POST /reports/{id}/actions/remote-check/{cancel,resend}` — the doc's
   remote-check lifecycle sub-resource, phase-2 (EPIC-12); `pdf` returns a

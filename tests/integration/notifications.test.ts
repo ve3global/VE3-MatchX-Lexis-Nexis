@@ -54,11 +54,11 @@ describe('notifications', () => {
     const createRes = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id });
-    expect(createRes.body.status).toBe('COMPLETE');
+      .send({ report_type_id: reportTypeRes.body.data.id });
+    expect(createRes.body.data.status).toBe('COMPLETE');
 
-    await request(app).get(`/reports/${createRes.body.id}`).set(authed());
-    await request(app).get(`/reports/${createRes.body.id}`).set(authed());
+    await request(app).get(`/reports/${createRes.body.data.id}`).set(authed());
+    await request(app).get(`/reports/${createRes.body.data.id}`).set(authed());
 
     const after = await request(app).get('/notifications').set(authed()).query({ per_page: 1 });
     expect(after.body.meta.total).toBe(totalBefore + 1);
@@ -72,17 +72,17 @@ describe('notifications', () => {
     const createRes = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id });
-    expect(createRes.body.status).toBe('STARTED');
+      .send({ report_type_id: reportTypeRes.body.data.id });
+    expect(createRes.body.data.status).toBe('STARTED');
 
     await request(app)
-      .post(`/reports/${createRes.body.id}/actions/bank-account-validation`)
+      .post(`/reports/${createRes.body.data.id}/actions/bank-account-validation`)
       .set(authed())
       .send({ bank_details: { sort_code: '123456', account_number: '12345678' } });
 
     const listRes = await request(app).get('/notifications').set(authed()).query({ read: 'false' });
     const notification = listRes.body.data.find((n: { message: string }) =>
-      n.message.includes(createRes.body.id),
+      n.message.includes(createRes.body.data.id),
     );
     expect(notification).toBeDefined();
     expect(notification.read).toBe(false);

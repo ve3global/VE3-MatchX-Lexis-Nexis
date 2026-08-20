@@ -1,8 +1,20 @@
-import type { ReportType } from '@prisma/client';
+import type { Prisma, ReportType } from '@prisma/client';
 import { ApiError } from '../../middleware/errorHandler.js';
 import { singleFieldError } from '../../lib/validation.js';
 import { prisma } from '../../lib/prisma.js';
 import type { CreateReportTypeRequest, UpdateReportTypeRequest } from './schema.js';
+
+// Maps the doc-facing `order_by` values to their DB column.
+const REPORT_TYPE_ORDER_COLUMNS = {
+  name: 'name',
+  created_at: 'createdAt',
+} as const satisfies Record<string, keyof Prisma.ReportTypeOrderByWithRelationInput>;
+
+export interface ListReportTypesFilters {
+  username?: string;
+  orderBy?: keyof typeof REPORT_TYPE_ORDER_COLUMNS;
+  order?: 'asc' | 'desc';
+}
 
 export function serializeReportType(reportType: ReportType) {
   return {
@@ -83,15 +95,25 @@ export async function listReportTypes(
   clientId: string,
   page: number,
   perPage: number,
+  filters: ListReportTypesFilters = {},
 ): Promise<{ items: ReportType[]; total: number }> {
+  const where: Prisma.ReportTypeWhereInput = {
+    clientId,
+    // Each client has exactly one UserProfile in this replica, so this
+    // only ever narrows to "all of mine" (username matches) or "none"
+    // (see schema.ts and epic-5-report-types/spec.md's "Resolved conflicts").
+    ...(filters.username && { client: { userProfile: { username: filters.username } } }),
+  };
+  const orderColumn = REPORT_TYPE_ORDER_COLUMNS[filters.orderBy ?? 'created_at'];
+
   const [items, total] = await Promise.all([
     prisma.reportType.findMany({
-      where: { clientId },
-      orderBy: { createdAt: 'asc' },
+      where,
+      orderBy: { [orderColumn]: filters.order ?? 'asc' },
       skip: (page - 1) * perPage,
       take: perPage,
     }),
-    prisma.reportType.count({ where: { clientId } }),
+    prisma.reportType.count({ where }),
   ]);
   return { items, total };
 }

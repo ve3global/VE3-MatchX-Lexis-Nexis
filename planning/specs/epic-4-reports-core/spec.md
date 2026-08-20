@@ -63,11 +63,13 @@ doc-vs-ticket precedence rule.
 - `GET /reports` returns the client's reports in the doc's
   `{data, links, meta}` paginator envelope, filterable by `forename`,
   `surname`, `dob`, `status`, `reference`, `postcode`, `date_from`,
-  `date_to` (see "Out of scope" for `uklexid`)
+  `date_to`, `uklexid` (see "Resolved conflicts" — `uklexid` is
+  accepted/type-validated but matches nothing)
 - Soft-deleted reports never appear
 
 **LN16**
-- `GET /reports/{id}` returns the assembled response: base fields, minimal
+- `GET /reports/{id}` returns the assembled response wrapped in the doc's
+  `{"data": ...}` envelope (see "Resolved conflicts"): base fields, minimal
   `user`/`context`/`annotations` stubs, `assessment` (scoring-engine
   output, `null` if no scorecard), `attributes` (flattened map from every
   action result so far), and one key per executed action
@@ -123,11 +125,21 @@ summarized for this epic:
 - **Audit log response shape is designed, not transcribed** (same
   rationale as EPIC-3's address-lookup response) — the doc mentions an
   audit endpoint's existence but doesn't expand its schema.
+- **`uklexid` is accepted, type-validated (422/1245 on a non-integer), and
+  always matches zero reports.** There's no `lexid`/identity-matching
+  concept anywhere in this replica (see above) — no report has one, so
+  honestly reflecting that means "filter by an attribute nothing has"
+  rather than silently ignoring the param or rejecting it as unsupported
+  (see `planning/api-drift-remediation.md`).
+- **`POST /reports` and `GET /reports/{id}` wrap their single-resource
+  response in `{"data": ...}`**, matching the doc's own fingerprint (every
+  response, single or paginated, uses the envelope — see
+  `lib/pagination.ts`'s comment and `planning/api-drift-remediation.md`).
+  `GET /reports` (list), `.../audit`, and `.../input-data` already used it;
+  this closes the gap for the two endpoints that didn't.
 
 ## Out of scope
 
-- `uklexid` list filter — no `lexid`/identity-matching concept exists in
-  this replica at all (see above), so there's no column to filter against.
 - `POST /reports/{id}/actions/{action}` and `input-data`'s bank-account/
   NI-number masking were explicitly out of scope for LN14-19 at the time
   this epic landed (no action modules existed to need either yet) — both

@@ -25,4 +25,8 @@ export const EXTENSION_ROUTES: RouteInfo[] = [
   // resource), this one's fields are this replica's own invention.
   { method: 'GET', path: '/users/company' },
   { method: 'PATCH', path: '/users/company' },
+  // EPIC-10 (phase 2): the doc has an endpoint to rotate a webhook secret
+  // once a URL exists (PUT /users/self/webhook-secret, doc-real) but none
+  // to set the URL in the first place — see webhooks/spec.md.
+  { method: 'PUT', path: '/users/self/webhook-url' },
 ];

@@ -37,11 +37,11 @@ describe('reports', () => {
     const res = await request(app).post('/reports').set(authed()).send(validInline);
 
     expect(res.status).toBe(201);
-    expect(res.body.status).toBe('STARTED');
-    expect(res.body.forename).toBe('Bella');
-    expect(res.body.address).toEqual({ address1: '204 Julius Road', postcode: 'BS7 8EU' });
-    expect(res.body.attributes).toEqual({});
-    expect(res.body.assessment).toBeNull();
+    expect(res.body.data.status).toBe('STARTED');
+    expect(res.body.data.forename).toBe('Bella');
+    expect(res.body.data.address).toEqual({ address1: '204 Julius Road', postcode: 'BS7 8EU' });
+    expect(res.body.data.attributes).toEqual({});
+    expect(res.body.data.assessment).toBeNull();
   });
 
   it('rejects an inline report missing required fields', async () => {
@@ -65,7 +65,7 @@ describe('reports', () => {
     const res = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id, forename: 'Bella' });
+      .send({ report_type_id: reportTypeRes.body.data.id, forename: 'Bella' });
 
     expect(res.status).toBe(422);
     expect(res.body.errors.forename[0].code).toBe(1149);
@@ -90,10 +90,10 @@ describe('reports', () => {
     const res = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id });
+      .send({ report_type_id: reportTypeRes.body.data.id });
 
     expect(res.status).toBe(201);
-    expect(res.body.status).toBe('COMPLETE');
+    expect(res.body.data.status).toBe('COMPLETE');
   });
 
   it('completes immediately for a primary action needing no input beyond the subject (EPIC-7)', async () => {
@@ -105,12 +105,12 @@ describe('reports', () => {
     const res = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id });
+      .send({ report_type_id: reportTypeRes.body.data.id });
 
     expect(res.status).toBe(201);
-    expect(res.body.status).toBe('COMPLETE');
-    expect(res.body['address-verification']).toHaveProperty('address_verified');
-    expect(res.body.attributes).toHaveProperty('address_verified');
+    expect(res.body.data.status).toBe('COMPLETE');
+    expect(res.body.data['address-verification']).toHaveProperty('address_verified');
+    expect(res.body.data.attributes).toHaveProperty('address_verified');
   });
 
   it('stays STARTED for a primary action needing input the create-report request never collects', async () => {
@@ -122,10 +122,10 @@ describe('reports', () => {
     const res = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id });
+      .send({ report_type_id: reportTypeRes.body.data.id });
 
     expect(res.status).toBe(201);
-    expect(res.body.status).toBe('STARTED');
+    expect(res.body.data.status).toBe('STARTED');
   });
 
   it('rejects creating against a report type with reference_required and no reference', async () => {
@@ -137,7 +137,7 @@ describe('reports', () => {
     const res = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id });
+      .send({ report_type_id: reportTypeRes.body.data.id });
 
     expect(res.status).toBe(422);
     expect(res.body.errors.reference[0].code).toBe(1250);
@@ -148,12 +148,12 @@ describe('reports', () => {
       .post('/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-inactive` });
-    await request(app).delete(`/report-types/${reportTypeRes.body.id}`).set(authed());
+    await request(app).delete(`/report-types/${reportTypeRes.body.data.id}`).set(authed());
 
     const res = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id });
+      .send({ report_type_id: reportTypeRes.body.data.id });
 
     expect(res.status).toBe(422);
   });
@@ -179,25 +179,29 @@ describe('reports', () => {
       .set(authed())
       .send({
         name: `RT ${Date.now()}-scored`,
-        scorecard_id: scorecardRes.body.id,
+        scorecard_id: scorecardRes.body.data.id,
         primary_actions: [],
       });
 
     const res = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id });
+      .send({ report_type_id: reportTypeRes.body.data.id });
 
     expect(res.status).toBe(201);
-    expect(res.body.assessment).toEqual({ score: -30, result: 'FAIL', groups: expect.any(Array) });
+    expect(res.body.data.assessment).toEqual({
+      score: -30,
+      result: 'FAIL',
+      groups: expect.any(Array),
+    });
   });
 
   it('fetches a report by id and 404s for an unknown id', async () => {
     const createRes = await request(app).post('/reports').set(authed()).send(validInline);
 
-    const getRes = await request(app).get(`/reports/${createRes.body.id}`).set(authed());
+    const getRes = await request(app).get(`/reports/${createRes.body.data.id}`).set(authed());
     expect(getRes.status).toBe(200);
-    expect(getRes.body.id).toBe(createRes.body.id);
+    expect(getRes.body.data.id).toBe(createRes.body.data.id);
 
     const notFoundRes = await request(app)
       .get('/reports/00000000-0000-0000-0000-000000000000')
@@ -221,7 +225,7 @@ describe('reports', () => {
 
   it('soft-deletes a report — subsequent GET 404s', async () => {
     const createRes = await request(app).post('/reports').set(authed()).send(validInline);
-    const id = createRes.body.id;
+    const id = createRes.body.data.id;
 
     const deleteRes = await request(app).delete(`/reports/${id}`).set(authed());
     expect(deleteRes.status).toBe(204);
@@ -241,9 +245,9 @@ describe('reports', () => {
     const postcodeRes = await request(app).get('/reports').query({ postcode }).set(authed());
     expect(postcodeRes.status).toBe(200);
     expect(postcodeRes.body.data.length).toBeGreaterThanOrEqual(1);
-    expect(postcodeRes.body.data.every((r: { id: string }) => r.id === createRes.body.id)).toBe(
-      true,
-    );
+    expect(
+      postcodeRes.body.data.every((r: { id: string }) => r.id === createRes.body.data.id),
+    ).toBe(true);
 
     const today = new Date().toISOString().slice(0, 10);
     const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
@@ -252,9 +256,9 @@ describe('reports', () => {
       .query({ postcode, date_from: today, date_to: tomorrow })
       .set(authed());
     expect(dateRangeRes.status).toBe(200);
-    expect(dateRangeRes.body.data.some((r: { id: string }) => r.id === createRes.body.id)).toBe(
-      true,
-    );
+    expect(
+      dateRangeRes.body.data.some((r: { id: string }) => r.id === createRes.body.data.id),
+    ).toBe(true);
 
     const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
     const outOfRangeRes = await request(app)
@@ -264,9 +268,23 @@ describe('reports', () => {
     expect(outOfRangeRes.body.data.length).toBe(0);
   });
 
+  it('accepts uklexid as an integer but matches nothing (no lexid concept in this replica)', async () => {
+    await request(app).post('/reports').set(authed()).send(validInline);
+
+    const res = await request(app).get('/reports').query({ uklexid: '123' }).set(authed());
+    expect(res.status).toBe(200);
+    expect(res.body.data.length).toBe(0);
+  });
+
+  it('rejects a non-integer uklexid (422/1245)', async () => {
+    const res = await request(app).get('/reports').query({ uklexid: 'abc' }).set(authed());
+    expect(res.status).toBe(422);
+    expect(res.body.errors.uklexid[0].code).toBe(1245);
+  });
+
   it('records audit log entries for create and delete', async () => {
     const createRes = await request(app).post('/reports').set(authed()).send(validInline);
-    const id = createRes.body.id;
+    const id = createRes.body.data.id;
 
     await request(app).delete(`/reports/${id}`).set(authed());
 
@@ -281,7 +299,9 @@ describe('reports', () => {
   it('returns submitted subject fields as input-data', async () => {
     const createRes = await request(app).post('/reports').set(authed()).send(validInline);
 
-    const res = await request(app).get(`/reports/${createRes.body.id}/input-data`).set(authed());
+    const res = await request(app)
+      .get(`/reports/${createRes.body.data.id}/input-data`)
+      .set(authed());
 
     expect(res.status).toBe(200);
     expect(res.body.data).toEqual({

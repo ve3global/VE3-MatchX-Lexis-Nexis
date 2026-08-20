@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { FieldErrorCodeMap } from '../../lib/validation.js';
 import { REPORT_ACTIONS } from '../../lib/reportActions.js';
+import { paginationQuerySchema } from '../../lib/pagination.js';
 
 function validateActionList(
   list: string[],
@@ -141,4 +142,34 @@ export const REPORT_TYPE_ERROR_CODES: FieldErrorCodeMap = {
   secondary_actions: { string: 1343 },
   is_default: { string: 1319 },
   category: { string: 1319, max: 1319 },
+};
+
+// Sortable columns — allow-listed against the serialized resource's own
+// fields (see REPORT_TYPE_ORDER_COLUMNS in service.ts for the DB mapping).
+export const REPORT_TYPE_ORDER_BY_VALUES = ['name', 'created_at'] as const;
+
+export const listReportTypesQuerySchema = paginationQuerySchema.extend({
+  // Filters by the requesting account's own profile username (see
+  // service.ts) — a real, if narrow, filter: report types are already
+  // scoped to the caller's client, and each client has exactly one
+  // UserProfile in this replica, so it only ever matches "all of mine" or
+  // "none" (see epic-5-report-types/spec.md's "Resolved conflicts").
+  username: z.string().max(255).optional(),
+  order_by: z.enum(REPORT_TYPE_ORDER_BY_VALUES).optional(),
+  order: z.enum(['asc', 'desc']).optional(),
+});
+
+export type ListReportTypesQuery = z.infer<typeof listReportTypesQuerySchema>;
+
+/**
+ * `order`/`order_by` have no dedicated doc error code (like `is_default`/
+ * `category` above) — an invalid value falls back to the generic 1319,
+ * same precedent as this file's other undocumented-condition fields.
+ */
+export const LIST_REPORT_TYPES_ERROR_CODES: FieldErrorCodeMap = {
+  page: { string: 1080, min: 1081 },
+  per_page: { string: 1077, min: 1078, max: 1079 },
+  username: { string: 1186, max: 1138 },
+  order_by: { invalid: 1319 },
+  order: { invalid: 1319 },
 };

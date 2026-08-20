@@ -203,5 +203,35 @@ describe('users module', () => {
       expect(res.body).toHaveProperty('links');
       expect(res.body).toHaveProperty('meta');
     });
+
+    it('filters by ip', async () => {
+      await request(app).get('/users/self').set(authed());
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      const unfiltered = await request(app).get('/users/activity-logs').set(authed());
+      const ip = unfiltered.body.data[0].ip;
+      expect(ip).toBeTruthy();
+
+      const res = await request(app).get('/users/activity-logs').query({ ip }).set(authed());
+      expect(res.status).toBe(200);
+      expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+      expect(res.body.data.every((entry: { ip: string }) => entry.ip === ip)).toBe(true);
+    });
+
+    it('rejects path_identifier/ip/server_name exceeding the max length', async () => {
+      const res = await request(app)
+        .get('/users/activity-logs')
+        .query({
+          path_identifier: 'x'.repeat(256),
+          ip: 'x'.repeat(256),
+          server_name: 'x'.repeat(256),
+        })
+        .set(authed());
+
+      expect(res.status).toBe(422);
+      expect(res.body.errors.path_identifier[0].code).toBe(1139);
+      expect(res.body.errors.ip[0].code).toBe(1142);
+      expect(res.body.errors.server_name[0].code).toBe(1143);
+    });
   });
 });

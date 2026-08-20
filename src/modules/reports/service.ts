@@ -10,6 +10,7 @@ import { prisma } from '../../lib/prisma.js';
 import { singleFieldError } from '../../lib/validation.js';
 import { ApiError, ValidationError } from '../../middleware/errorHandler.js';
 import { createNotification } from '../notifications/service.js';
+import { deliverEvent } from '../webhooks/service.js';
 import { evaluateScorecard, type ScoreGroup } from '../../scoring/engine.js';
 import { ACTION_REGISTRY } from './actions/registry.js';
 import type { ActionSubject } from './actions/types.js';
@@ -220,6 +221,7 @@ export interface ListReportsFilters {
   postcode?: string;
   date_from?: string;
   date_to?: string;
+  uklexid?: number;
 }
 
 export async function listReports(
@@ -228,6 +230,14 @@ export async function listReports(
   page: number,
   perPage: number,
 ): Promise<{ items: ReportWithRelations[]; total: number }> {
+  // `uklexid` is accepted and type-validated per the doc (code 1245), but
+  // this replica has no lexid/identity-matching concept at all (see
+  // epic-4-reports-core/spec.md's "Resolved conflicts") — no report has
+  // one, so any value provided honestly matches nothing.
+  if (filters.uklexid !== undefined) {
+    return { items: [], total: 0 };
+  }
+
   const where = {
     clientId,
     deletedAt: null,
@@ -562,6 +572,11 @@ export async function getRemoteCheckResults(
     }),
   ]);
   await recomputeStatus(reportId);
+  await deliverEvent(clientId, 'remote-check.check-completed', {
+    report_id: reportId,
+    remote_check_id: transaction.id,
+    status: 'COMPLETED',
+  });
 
   return { remote_check_status: 'COMPLETED', remote_check_result: result };
 }

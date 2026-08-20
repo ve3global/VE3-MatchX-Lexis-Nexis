@@ -8,21 +8,26 @@ datasource db {
 }
 
 model Client {
-  id               String        @id @default(uuid())
-  clientId         String        @unique @map("client_id")
-  clientSecretHash String        @map("client_secret_hash")
-  name             String
-  createdAt        DateTime      @default(now()) @map("created_at")
-  accessTokens     AccessToken[]
-  reportTypes      ReportType[]
-  scorecards       Scorecard[]
-  reports          Report[]
-  notifications    Notification[]
-  webhooks         Webhook[]
-  userProfile      UserProfile?
-  company          Company?
-  userOptions      UserOptions?
-  activityLogs     ActivityLog[]
+  id                        String           @id @default(uuid())
+  clientId                  String           @unique @map("client_id")
+  clientSecretHash          String           @map("client_secret_hash")
+  name                      String
+  createdAt                 DateTime         @default(now()) @map("created_at")
+  // EPIC-10 (phase 2): one account-level webhook URL per client, not a
+  // list of subscriptions — see webhooks/spec.md. Secret is server-
+  // generated only, via PUT /users/self/webhook-secret.
+  notificationWebhookUrl    String?          @map("notification_webhook_url")
+  notificationWebhookSecret String?          @map("notification_webhook_secret")
+  accessTokens              AccessToken[]
+  reportTypes               ReportType[]
+  scorecards                Scorecard[]
+  reports                   Report[]
+  notifications             Notification[]
+  webhookMessages           WebhookMessage[]
+  userProfile               UserProfile?
+  company                   Company?
+  userOptions               UserOptions?
+  activityLogs              ActivityLog[]
 
   @@map("clients")
 }
@@ -110,28 +115,28 @@ enum ReportStatus {
 }
 
 model Report {
-  id               String               @id @default(uuid())
-  clientId         String               @map("client_id")
-  client           Client               @relation(fields: [clientId], references: [id])
-  reportTypeId     String?              @map("report_type_id")
-  reportType       ReportType?          @relation(fields: [reportTypeId], references: [id], onDelete: SetNull)
+  id               String                  @id @default(uuid())
+  clientId         String                  @map("client_id")
+  client           Client                  @relation(fields: [clientId], references: [id])
+  reportTypeId     String?                 @map("report_type_id")
+  reportType       ReportType?             @relation(fields: [reportTypeId], references: [id], onDelete: SetNull)
   // Copied from reportType.scorecardId at creation time (if any) so a
   // report's assessment stays pinned to what was configured when it was
   // created, even if the report type's own scorecard changes later.
-  scorecardId      String?              @map("scorecard_id")
-  scorecard        Scorecard?           @relation(fields: [scorecardId], references: [id], onDelete: SetNull)
+  scorecardId      String?                 @map("scorecard_id")
+  scorecard        Scorecard?              @relation(fields: [scorecardId], references: [id], onDelete: SetNull)
   forename         String?
   middlename       String?
   surname          String?
   dob              DateTime?
   address          Json?
   reference        String?
-  enduserAgreement Boolean              @default(false) @map("enduser_agreement")
-  test             Boolean              @default(false)
-  status           ReportStatus         @default(STARTED)
-  deletedAt        DateTime?            @map("deleted_at")
-  createdAt        DateTime             @default(now()) @map("created_at")
-  updatedAt        DateTime             @updatedAt @map("updated_at")
+  enduserAgreement Boolean                 @default(false) @map("enduser_agreement")
+  test             Boolean                 @default(false)
+  status           ReportStatus            @default(STARTED)
+  deletedAt        DateTime?               @map("deleted_at")
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
   actionResults    ReportActionResult[]
   auditLogs        ReportAuditLog[]
   remoteCheck      RemoteCheckTransaction?
@@ -185,33 +190,36 @@ enum WebhookDeliveryStatus {
   RETRYING
 }
 
-model Webhook {
-  id         String            @id @default(uuid())
-  clientId   String            @map("client_id")
-  client     Client            @relation(fields: [clientId], references: [id])
-  url        String
-  // Plaintext, not hashed — must be recoverable to sign each delivery's
-  // HMAC (see spec.md's "Resolved conflicts"). Acceptable for a local
-  // dev/test replica; not a production secrets-storage pattern.
-  secret     String
-  createdAt  DateTime          @default(now()) @map("created_at")
-  updatedAt  DateTime          @updatedAt @map("updated_at")
-  deliveries WebhookDelivery[]
-
-  @@map("webhooks")
-}
-
-model WebhookDelivery {
+// EPIC-10 (phase 2): a read-only log of messages this replica has
+// attempted to deliver to the client's one configured webhook URL — not
+// a list of webhook subscriptions (see spec.md's "Resolved conflicts").
+model WebhookMessage {
   id        String                @id @default(uuid())
-  webhookId String                @map("webhook_id")
-  webhook   Webhook               @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  clientId  String                @map("client_id")
+  client    Client                @relation(fields: [clientId], references: [id])
+  type      String
   status    WebhookDeliveryStatus @default(PENDING)
   payload   Json
-  signature String
   createdAt DateTime              @default(now()) @map("created_at")
   updatedAt DateTime              @updatedAt @map("updated_at")
+  attempts  WebhookAttempt[]
 
-  @@map("webhook_deliveries")
+  @@map("webhook_messages")
+}
+
+model WebhookAttempt {
+  id            String         @id @default(uuid())
+  messageId     String         @map("message_id")
+  message       WebhookMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  attemptNumber Int            @map("attempt_number")
+  succeeded     Boolean
+  // Plaintext-secret HMAC, recomputed at delivery time — see Client's
+  // notificationWebhookSecret comment for why the secret itself is
+  // stored in plaintext.
+  signature     String
+  createdAt     DateTime       @default(now()) @map("created_at")
+
+  @@map("webhook_attempts")
 }
 
 // EPIC-12 (phase 2) — supersedes EPIC-7c's synchronous remote-check design.
@@ -263,40 +271,40 @@ model Company {
 }
 
 model UserOptions {
-  id       String  @id @default(uuid())
-  clientId String  @unique @map("client_id")
-  client   Client  @relation(fields: [clientId], references: [id])
+  id                       String   @id @default(uuid())
+  clientId                 String   @unique @map("client_id")
+  client                   Client   @relation(fields: [clientId], references: [id])
   // Action-enablement toggles — additive, not enforced (see spec.md's
   // "Out of scope").
-  bankAccountValidation    Boolean @default(true) @map("bank_account_validation")
-  drivingLicenceValidation Boolean @default(true) @map("driving_licence_validation")
-  niNumberValidation       Boolean @default(true) @map("ni_number_validation")
-  passportValidation       Boolean @default(true) @map("passport_validation")
-  addressInsights          Boolean @default(true) @map("address_insights")
-  addressLookup            Boolean @default(true) @map("address_lookup")
-  remoteCheck              Boolean @default(true) @map("remote_check")
-  propertyRegisterSearch   Boolean @default(true) @map("property_register_search")
-  nfiAddress               Boolean @default(true) @map("nfi_address")
-  nfiAmberhill             Boolean @default(true) @map("nfi_amberhill")
-  emailRisk                Boolean @default(true) @map("email_risk")
-  otpEmail                 Boolean @default(true) @map("otp_email")
-  otpSms                   Boolean @default(true) @map("otp_sms")
-  phoneMatch               Boolean @default(true) @map("phone_match")
-  phoneNumberValidation    Boolean @default(true) @map("phone_number_validation")
-  bankaccount              Boolean @default(true)
-  creditActivity           Boolean @default(true) @map("credit_activity")
+  bankAccountValidation    Boolean  @default(true) @map("bank_account_validation")
+  drivingLicenceValidation Boolean  @default(true) @map("driving_licence_validation")
+  niNumberValidation       Boolean  @default(true) @map("ni_number_validation")
+  passportValidation       Boolean  @default(true) @map("passport_validation")
+  addressInsights          Boolean  @default(true) @map("address_insights")
+  addressLookup            Boolean  @default(true) @map("address_lookup")
+  remoteCheck              Boolean  @default(true) @map("remote_check")
+  propertyRegisterSearch   Boolean  @default(true) @map("property_register_search")
+  nfiAddress               Boolean  @default(true) @map("nfi_address")
+  nfiAmberhill             Boolean  @default(true) @map("nfi_amberhill")
+  emailRisk                Boolean  @default(true) @map("email_risk")
+  otpEmail                 Boolean  @default(true) @map("otp_email")
+  otpSms                   Boolean  @default(true) @map("otp_sms")
+  phoneMatch               Boolean  @default(true) @map("phone_match")
+  phoneNumberValidation    Boolean  @default(true) @map("phone_number_validation")
+  bankaccount              Boolean  @default(true)
+  creditActivity           Boolean  @default(true) @map("credit_activity")
   // config.* sub-object.
-  configFullEr     Boolean  @default(false) @map("config_full_er")
-  configAgeMin     Int?     @map("config_age_min")
-  configAgeMax     Int?     @map("config_age_max")
-  configNfiAddress Boolean  @default(false) @map("config_nfi_address")
+  configFullEr             Boolean  @default(false) @map("config_full_er")
+  configAgeMin             Int?     @map("config_age_min")
+  configAgeMax             Int?     @map("config_age_max")
+  configNfiAddress         Boolean  @default(false) @map("config_nfi_address")
   // bridger_* fields — opaque, no attributed behavior (see spec.md).
-  bridgerClientId         String?  @map("bridger_client_id")
-  bridgerClientSecret     String?  @map("bridger_client_secret")
-  bridgerPredefinedSearch String?  @map("bridger_predefined_search")
-  bridgerUserId           String?  @map("bridger_user_id")
-  bridgerCustomerToggle   Boolean  @default(false) @map("bridger_customer_toggle")
-  updatedAt               DateTime @updatedAt @map("updated_at")
+  bridgerClientId          String?  @map("bridger_client_id")
+  bridgerClientSecret      String?  @map("bridger_client_secret")
+  bridgerPredefinedSearch  String?  @map("bridger_predefined_search")
+  bridgerUserId            String?  @map("bridger_user_id")
+  bridgerCustomerToggle    Boolean  @default(false) @map("bridger_customer_toggle")
+  updatedAt                DateTime @updatedAt @map("updated_at")
 
   @@map("user_options")
 }

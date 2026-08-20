@@ -31,22 +31,51 @@ The whole collection is re-runnable against the same persistent
 name, and no assertion assumes a singleton resource (self/company/options)
 is in a fresh, never-touched state. Verified stable across repeated runs.
 
+## Demo (stakeholder walkthrough)
+
+For a live internal demo, run only the folders confirmed clean against the
+real IDU doc — skips the modules with open items in
+`planning/api-drift-remediation.md` (webhooks mid-rebuild pending a
+migration; users/notifications/remote-check-lifecycle have known path
+drift). Validated live against `npm run dev` on 2026-08-20: **56/56
+requests, 104/104 assertions, 0 failures.**
+
+```bash
+npx newman run docs/postman/LN-Replica.postman_collection.json \
+  -e docs/postman/LN-Replica.postman_environment.json \
+  --folder "00 - Health" \
+  --folder "01 - Auth (EPIC-2)" \
+  --folder "02 - Address Lookup (EPIC-3)" \
+  --folder "03 - Scorecards (EPIC-6)" \
+  --folder "04 - Report Types (EPIC-5)" \
+  --folder "05 - Reports Core (EPIC-4)" \
+  --folder "06 - Report Actions (EPIC-7a/7b/7c)"
+```
+
+In the Postman GUI: Collection Runner → deselect everything except those
+seven folders → Run. Suggested narrative order: auth → address lookup →
+configure a report type (with a scorecard + primary action) → create a
+report against it (watch it auto-run and self-score) → run an action
+individually → show the audit trail/input-data. If asked what's not shown:
+webhooks (rebuild in flight, migration pending) and the users/notifications/
+remote-check-lifecycle path renames — both tracked, not started.
+
 ## Coverage
 
-87 requests across 11 folders, one per epic:
+91 requests across 11 folders, one per epic:
 
 | Folder | Epic | Highlights |
 |---|---|---|
 | 00 Health | — | `GET /up` |
 | 01 Auth | EPIC-2 | Token issuance, bearer-middleware 401 variants (missing/malformed/unknown token), revoke extension + reuse-after-revoke |
 | 02 Address Lookup | EPIC-3 | Doc-sample postcode, validation errors, `GET /addresses*` extension aliases, reference round-trip + 404 |
-| 03 Scorecards | EPIC-6 | Create + threshold/attribute validation, list/fetch, version-bumping update, publish extension |
-| 04 Report Types | EPIC-5 | Create + action-list/overlap validation, list/fetch/404, partial update |
-| 05 Reports Core | EPIC-4 | Inline create + required-field validation, `report_type_id` XOR inline conflict, list/filter, input-data |
+| 03 Scorecards | EPIC-6 | Create + threshold/attribute validation, list/fetch, version-bumping update, publish extension — single-resource responses wrapped in `{"data": ...}` |
+| 04 Report Types | EPIC-5 | Create + action-list/overlap validation, list/fetch/404, partial update, `username`/`order`/`order_by` filters — single-resource responses wrapped in `{"data": ...}` |
+| 05 Reports Core | EPIC-4 | Inline create + required-field validation, `report_type_id` XOR inline conflict, list/filter, `uklexid` filter (accepted, matches nothing), input-data — single-resource responses wrapped in `{"data": ...}` |
 | 06 Report Actions | EPIC-7a/7b/7c | No-body action run, both QA overrides (`SANCTIONED`, `1900-01-01`), bank-details format validation, full otp-email send/verify flow |
 | 07 Remote-check Lifecycle | EPIC-12 (phase 2) | Start/double-start/re-run-after-complete, idempotent results resolution, cross-action 1325 lock, cancel/resend state machine, pdf stub |
 | 08 Notifications | EPIC-9 (phase 2) | List/filter, mark-read, validation |
-| 09 Webhooks | EPIC-10 (phase 2) | URL scheme validation, simulated test delivery (signature format check — **no real HTTP call is ever made**, see epic-10's spec.md), retry business rule, secret rotation |
+| 09 Webhooks | EPIC-10 (phase 2) | URL scheme validation, simulated test delivery (signature format check — **no real HTTP call is ever made**, see epic-10's spec.md), retry business rule, secret rotation — **stale**: routes.ts already reflects the epic-10 rebuild, migration not yet applied, this folder currently fails live (see `planning/api-drift-remediation.md`) |
 | 10 Users Module | EPIC-11 (phase 2) | self/company/options get-or-create + update, `config.age_min`/`age_max` cross-validation, activity-log capture + filter |
 
 **Not covered here** (needs direct DB access Postman can't do on its own —

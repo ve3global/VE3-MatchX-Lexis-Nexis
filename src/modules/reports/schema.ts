@@ -139,6 +139,7 @@ export const listReportsQuerySchema = z.object({
   postcode: z.string().optional(),
   date_from: z.string().regex(DATE_RE).optional(),
   date_to: z.string().regex(DATE_RE).optional(),
+  uklexid: z.coerce.number().int().optional(),
 });
 
 export const LIST_REPORTS_ERROR_CODES: FieldErrorCodeMap = {
@@ -152,4 +153,5 @@ export const LIST_REPORTS_ERROR_CODES: FieldErrorCodeMap = {
   postcode: { string: 1032 },
   date_from: { string: 1319, invalid: 1319 },
   date_to: { string: 1319, invalid: 1300 },
+  uklexid: { string: 1245 },
 };
