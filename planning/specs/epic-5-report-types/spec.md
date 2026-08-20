@@ -44,15 +44,19 @@ doc-vs-ticket precedence rule.
 
 **LN21**
 - `GET /report-types` returns the client's report types in the doc's
-  `{data, links, meta}` paginator envelope (shared `lib/pagination.ts`)
-- `GET /report-types/{id}` returns a single report type; an id belonging to
-  another client or that doesn't exist returns 404
+  `{data, links, meta}` paginator envelope (shared `lib/pagination.ts`),
+  filterable by `username` and sortable by `order`/`order_by` (see
+  "Resolved conflicts")
+- `GET /report-types/{id}` returns a single report type wrapped in the
+  doc's `{"data": ...}` envelope (see "Resolved conflicts"); an id
+  belonging to another client or that doesn't exist returns 404
 - Both list and fetch include inactive (deactivated) report types — a
   deactivation is a status flip, not a removal (see "Resolved conflicts")
 
 **LN22**
 - `PATCH /report-types/{id}` accepts a partial update of any create-time
-  field (see "Resolved conflicts" — `PATCH` only, not `PUT`)
+  field (see "Resolved conflicts" — `PATCH` only, not `PUT`), returning the
+  updated resource wrapped in `{"data": ...}`
 - Renaming to a name already used by another of the client's report types
   returns 422, same duplicate-name code as create
 - Action-list/scorecard validation rules are identical to create's
@@ -97,6 +101,22 @@ summarized for this epic:
   confirmed from the source PDF; validation here only rejects names outside
   this list, so nothing currently valid gets more permissive when the list
   grows to 27 — it can only accept more, never less.
+- **`username` filters by the requesting account's own profile username,
+  not an arbitrary user.** Report types are already scoped to the caller's
+  `clientId`, and this replica gives each client exactly one `UserProfile`
+  (EPIC-11) — so the filter only ever narrows to "all of mine" (username
+  matches) or "none" (doesn't). Real, not fabricated, but necessarily
+  narrow until/unless multiple users per client exist.
+- **`order`/`order_by` have no dedicated doc error code.** Same
+  "falls back to generic 1319" precedent as `is_default`/`category` above.
+  `order_by` is allow-listed to `name`/`created_at` (the two columns this
+  replica can sort by); anything else is the generic 1319, not a
+  more-specific "unknown column" code the doc doesn't define.
+- **`POST`, `PATCH`, and `GET .../{id}` (including the reactivate
+  extension) wrap their response in `{"data": ...}`**, matching the doc's
+  own paginator fingerprint extended to single resources (see
+  `planning/api-drift-remediation.md`). `GET /report-types` (list) already
+  used it.
 
 ## Out of scope
 

@@ -60,8 +60,14 @@ for my account (`options`) — plus a minimal company record the doc's own
 
 **activity-logs**
 - `GET /users/activity-logs` — paginated, filterable by every doc-named
-  field (`method`, `path`, `status`, `ip`, `application`, `level`,
-  `channel`)
+  field with a matching `ActivityLog` column (`path_identifier`,
+  `method`, `path`, `ip`, `status`, `application`, `level`, `channel`,
+  `server_name`). `path_identifier`/`ip`/`server_name` were originally
+  claimed here but not actually wired into
+  `activityLogsQuerySchema`/`listActivityLogs` — fixed as a tech-debt
+  completion (`user_id`/`company_id`, codes 1126/1127, remain unbuilt:
+  no matching column exists, since this replica has no user/company
+  entity distinct from `Client` — see "Resolved conflicts").
 - Every authenticated HTTP request through this replica writes one row
   (new `middleware/activityLog.ts`), captured *after* the response is
   sent so it never affects response latency/behavior

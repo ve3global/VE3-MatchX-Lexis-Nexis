@@ -46,3 +46,12 @@ sub-resource's confidence level is documented in its own spec.md.
 | EPIC-10 Webhooks | done | Solid — url/secret/status/retry cluster (1295-1303, 1322-1324) |
 | EPIC-11 Users module (self/company/activity-logs/options) | done | Mixed — solid for self/activity-logs, thinner for options, near-total guess for company |
 | EPIC-12 Remote-check lifecycle | done | Solid — 1312/1313/1321/1325/1338 unambiguously confirm a stateful lifecycle; supersedes EPIC-7c's synchronous remote-check design |
+
+### API drift audit
+
+`IDU_REST_API_Documentation.pdf` (the source PDF referenced above) became
+available after phase 2 was built best-effort from `errorCodes.ts` alone.
+A 2026-08-14 cross-check against it found real path/action-name drift in
+several "done" epics — tracked in
+[api-drift-remediation.md](api-drift-remediation.md), to be fixed
+epic-by-epic.

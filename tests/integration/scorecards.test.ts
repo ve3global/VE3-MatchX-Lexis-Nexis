@@ -48,8 +48,8 @@ describe('scorecards', () => {
     const res = await createValidScorecard(`SC ${Date.now()}-a`);
 
     expect(res.status).toBe(201);
-    expect(res.body.status).toBe('DRAFT');
-    expect(res.body.version).toBe(1);
+    expect(res.body.data.status).toBe('DRAFT');
+    expect(res.body.data.version).toBe(1);
   });
 
   it('rejects pass_threshold <= fail_threshold', async () => {
@@ -152,7 +152,7 @@ describe('scorecards', () => {
 
   it('bumps version on every successful update', async () => {
     const createRes = await createValidScorecard(`SC ${Date.now()}-version`);
-    const id = createRes.body.id;
+    const id = createRes.body.data.id;
 
     const patchRes = await request(app)
       .patch(`/scorecards/${id}`)
@@ -160,13 +160,13 @@ describe('scorecards', () => {
       .send({ pass_threshold: 90 });
 
     expect(patchRes.status).toBe(200);
-    expect(patchRes.body.version).toBe(2);
-    expect(patchRes.body.pass_threshold).toBe(90);
+    expect(patchRes.body.data.version).toBe(2);
+    expect(patchRes.body.data.pass_threshold).toBe(90);
   });
 
   it('rejects editing a RETIRED scorecard', async () => {
     const createRes = await createValidScorecard(`SC ${Date.now()}-editretired`);
-    const id = createRes.body.id;
+    const id = createRes.body.data.id;
     await request(app).post(`/scorecards/${id}/retire`).set(authed());
 
     const patchRes = await request(app)
@@ -179,28 +179,28 @@ describe('scorecards', () => {
 
   it('publishes and retires a scorecard, including no-op re-calls', async () => {
     const createRes = await createValidScorecard(`SC ${Date.now()}-lifecycle`);
-    const id = createRes.body.id;
+    const id = createRes.body.data.id;
 
     const publishRes = await request(app).post(`/scorecards/${id}/publish`).set(authed());
     expect(publishRes.status).toBe(200);
-    expect(publishRes.body.status).toBe('PUBLISHED');
+    expect(publishRes.body.data.status).toBe('PUBLISHED');
 
     const publishAgainRes = await request(app).post(`/scorecards/${id}/publish`).set(authed());
     expect(publishAgainRes.status).toBe(200);
-    expect(publishAgainRes.body.status).toBe('PUBLISHED');
+    expect(publishAgainRes.body.data.status).toBe('PUBLISHED');
 
     const retireRes = await request(app).post(`/scorecards/${id}/retire`).set(authed());
     expect(retireRes.status).toBe(200);
-    expect(retireRes.body.status).toBe('RETIRED');
+    expect(retireRes.body.data.status).toBe('RETIRED');
 
     const retireAgainRes = await request(app).post(`/scorecards/${id}/retire`).set(authed());
     expect(retireAgainRes.status).toBe(200);
-    expect(retireAgainRes.body.status).toBe('RETIRED');
+    expect(retireAgainRes.body.data.status).toBe('RETIRED');
   });
 
   it('rejects deleting a scorecard attached to a report type, then allows it once detached', async () => {
     const createRes = await createValidScorecard(`SC ${Date.now()}-attached`);
-    const scorecardId = createRes.body.id;
+    const scorecardId = createRes.body.data.id;
 
     const reportTypeRes = await request(app)
       .post('/report-types')
@@ -213,7 +213,7 @@ describe('scorecards', () => {
     expect(deleteRes.body.errors.scorecard_id[0].code).toBe(1241);
 
     await prisma.reportType.update({
-      where: { id: reportTypeRes.body.id },
+      where: { id: reportTypeRes.body.data.id },
       data: { scorecardId: null },
     });
 
@@ -226,7 +226,7 @@ describe('scorecards', () => {
 
   it('rejects assigning a RETIRED scorecard as a new report type scorecard_id', async () => {
     const createRes = await createValidScorecard(`SC ${Date.now()}-retiredassign`);
-    const scorecardId = createRes.body.id;
+    const scorecardId = createRes.body.data.id;
     await request(app).post(`/scorecards/${scorecardId}/retire`).set(authed());
 
     const reportTypeRes = await request(app)

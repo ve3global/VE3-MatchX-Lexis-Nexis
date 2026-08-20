@@ -178,12 +178,15 @@ export async function updateOptions(clientId: string, input: UpdateOptionsReques
 }
 
 export interface ActivityLogFilters {
+  path_identifier?: string;
   method?: string;
   path?: string;
+  ip?: string;
   status?: number;
   application?: string;
   level?: string;
   channel?: string;
+  server_name?: string;
 }
 
 export async function listActivityLogs(
@@ -194,12 +197,15 @@ export async function listActivityLogs(
 ): Promise<{ items: ReturnType<typeof serializeActivityLog>[]; total: number }> {
   const where = {
     clientId,
+    ...(filters.path_identifier && { pathIdentifier: filters.path_identifier }),
     ...(filters.method && { method: filters.method }),
     ...(filters.path && { path: filters.path }),
+    ...(filters.ip && { ip: filters.ip }),
     ...(filters.status !== undefined && { status: filters.status }),
     ...(filters.application && { application: filters.application }),
     ...(filters.level && { level: filters.level }),
     ...(filters.channel && { channel: filters.channel }),
+    ...(filters.server_name && { serverName: filters.server_name }),
   };
   const [items, total] = await Promise.all([
     prisma.activityLog.findMany({

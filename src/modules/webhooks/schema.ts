@@ -10,28 +10,57 @@ const httpsUrl = z
     message: 'The notification_webhook_url must have a valid SSL certificate',
   });
 
-export const createWebhookSchema = z.object({
+/** Replica-only extension — the doc has no endpoint for setting the URL itself (see spec.md). */
+export const setWebhookUrlSchema = z.object({
   notification_webhook_url: httpsUrl,
-  notification_webhook_secret: z.string().min(1),
 });
 
-export type CreateWebhookRequest = z.infer<typeof createWebhookSchema>;
+export type SetWebhookUrlRequest = z.infer<typeof setWebhookUrlSchema>;
 
-export const updateWebhookSchema = z.object({
-  notification_webhook_url: httpsUrl.optional(),
-  notification_webhook_secret: z.string().min(1).optional(),
-});
-
-export type UpdateWebhookRequest = z.infer<typeof updateWebhookSchema>;
-
-/**
- * `url()`'s own format failure (invalid_string, code 1295) and the
- * https-only `refine()` (a `custom` issue, code 1297 — the doc's SSL-cert
- * check) are two different Zod issue shapes on the same field, so both
- * need an entry. No dedicated "must be a string" code exists for either
- * field, so wrong-type falls back to the generic 1319.
- */
-export const WEBHOOK_ERROR_CODES: FieldErrorCodeMap = {
+export const SET_WEBHOOK_URL_ERROR_CODES: FieldErrorCodeMap = {
   notification_webhook_url: { required: 1322, string: 1319, invalid: 1295, custom: 1297 },
-  notification_webhook_secret: { required: 1323, string: 1319 },
+};
+
+export const WEBHOOK_EVENT_TYPES = [
+  'remote-check.check-completed',
+  'remote-check.invitation-expired',
+] as const;
+
+export const listWebhookMessagesQuerySchema = z
+  .object({
+    date_from: z.string().datetime(),
+    date_to: z.string().datetime().optional(),
+    page: z.coerce.number().int().min(1).optional().default(1),
+    per_page: z.coerce.number().int().min(1).max(100).optional().default(15),
+  })
+  .superRefine((data, ctx) => {
+    if (data.date_to !== undefined && data.date_to < data.date_from) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['date_to'],
+        message: 'The date_to must be a date after or equal to date_from',
+        params: { code: 1300 },
+      });
+    }
+  });
+
+export type ListWebhookMessagesQuery = z.infer<typeof listWebhookMessagesQuerySchema>;
+
+export const LIST_WEBHOOK_MESSAGES_ERROR_CODES: FieldErrorCodeMap = {
+  date_from: { required: 1299, string: 1319, invalid: 1319 },
+  date_to: { string: 1319, invalid: 1319 },
+  page: { string: 1080, min: 1081 },
+  per_page: { string: 1077, min: 1078, max: 1079 },
+};
+
+export const testWebhookSchema = z.object({
+  valid_signature: z.boolean().optional().default(true),
+  event_type: z.enum(WEBHOOK_EVENT_TYPES).optional(),
+});
+
+export type TestWebhookRequest = z.infer<typeof testWebhookSchema>;
+
+export const TEST_WEBHOOK_ERROR_CODES: FieldErrorCodeMap = {
+  valid_signature: { string: 1319 },
+  event_type: { invalid: 1319 },
 };

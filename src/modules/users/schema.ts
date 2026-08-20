@@ -135,21 +135,33 @@ export const OPTIONS_ERROR_CODES: FieldErrorCodeMap = {
 export const activityLogsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional().default(1),
   per_page: z.coerce.number().int().min(1).max(100).optional().default(15),
+  path_identifier: z.string().max(255).optional(),
   method: z.string().optional(),
   path: z.string().optional(),
+  ip: z.string().max(255).optional(),
   status: z.coerce.number().int().optional(),
   application: z.string().optional(),
   level: z.string().optional(),
   channel: z.string().optional(),
+  server_name: z.string().max(255).optional(),
 });
 
+/**
+ * `path_identifier`/`ip`/`server_name` (1121/1124/1143 + max variants) were
+ * previously unwired despite already being ActivityLog columns and
+ * response fields (see serializeActivityLog) — best-effort completion,
+ * see EPIC-11's spec.md.
+ */
 export const ACTIVITY_LOGS_ERROR_CODES: FieldErrorCodeMap = {
   page: { string: 1080, min: 1081 },
   per_page: { string: 1077, min: 1078, max: 1079 },
+  path_identifier: { string: 1121, max: 1139 },
   method: { string: 1122, max: 1140 },
   path: { string: 1123, max: 1141 },
+  ip: { string: 1124, max: 1142 },
   status: { string: 1125 },
   application: { string: 1154, max: 1155 },
   level: { string: 1156, max: 1157 },
   channel: { string: 1158, max: 1159 },
+  server_name: { string: 1319, max: 1143 },
 };

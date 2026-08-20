@@ -128,6 +128,11 @@ summarized for this epic:
 - **Attribute enum is provisional (8 of ~55 confirmed).** Same "grows,
   never shrinks" note as EPIC-5's action-name enum — see
   [lib/reportAttributes.ts](../../../src/lib/reportAttributes.ts).
+- **`POST`, `GET .../{id}`, `PATCH`, `.../publish`, and `.../retire` wrap
+  their response in `{"data": ...}`**, matching the doc's own paginator
+  fingerprint extended to single resources (see
+  `planning/api-drift-remediation.md`). `GET /scorecards` (list) already
+  used it.
 
 ## Out of scope
 

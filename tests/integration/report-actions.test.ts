@@ -33,7 +33,7 @@ describe('report actions', () => {
         address: { address1: '1 Test Street', postcode: 'TE1 1ST' },
         enduser_agreement: true,
       });
-    return res.body.id;
+    return res.body.data.id;
   }
 
   it('registers exactly one module per name in the 27-action list, except remote-check (EPIC-12 lifecycle special-case)', () => {
@@ -73,8 +73,8 @@ describe('report actions', () => {
     expect(runRes.body.data['dob-verification']).toHaveProperty('dob_verified');
 
     const getRes = await request(app).get(`/reports/${id}`).set(authed());
-    expect(getRes.body['dob-verification']).toEqual(runRes.body.data['dob-verification']);
-    expect(getRes.body.attributes).toMatchObject(runRes.body.data['dob-verification']);
+    expect(getRes.body.data['dob-verification']).toEqual(runRes.body.data['dob-verification']);
+    expect(getRes.body.data.attributes).toMatchObject(runRes.body.data['dob-verification']);
   });
 
   it('returns identical results for the same subject across separate reports (determinism)', async () => {
@@ -185,7 +185,7 @@ describe('report actions', () => {
     expect(actionRunEvents.length).toBe(2);
 
     const getRes = await request(app).get(`/reports/${id}`).set(authed());
-    expect(Object.keys(getRes.body.attributes).sort()).toEqual(['dob_count', 'dob_verified']);
+    expect(Object.keys(getRes.body.data.attributes).sort()).toEqual(['dob_count', 'dob_verified']);
   });
 
   it('recomputes report status to COMPLETE once every primary action has run individually', async () => {
@@ -196,17 +196,17 @@ describe('report actions', () => {
     const createRes = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id });
-    expect(createRes.body.status).toBe('STARTED');
+      .send({ report_type_id: reportTypeRes.body.data.id });
+    expect(createRes.body.data.status).toBe('STARTED');
 
     const runRes = await request(app)
-      .post(`/reports/${createRes.body.id}/actions/bank-account-validation`)
+      .post(`/reports/${createRes.body.data.id}/actions/bank-account-validation`)
       .set(authed())
       .send({ bank_details: { sort_code: '123456', account_number: '12345678' } });
     expect(runRes.status).toBe(200);
 
-    const getRes = await request(app).get(`/reports/${createRes.body.id}`).set(authed());
-    expect(getRes.body.status).toBe('COMPLETE');
+    const getRes = await request(app).get(`/reports/${createRes.body.data.id}`).set(authed());
+    expect(getRes.body.data.status).toBe('COMPLETE');
   });
 
   it('QA override: surname SANCTIONED forces sanction:true', async () => {
@@ -222,7 +222,7 @@ describe('report actions', () => {
       });
 
     const res = await request(app)
-      .post(`/reports/${createRes.body.id}/actions/sanction-screening`)
+      .post(`/reports/${createRes.body.data.id}/actions/sanction-screening`)
       .set(authed())
       .send({});
     expect(res.body.data['sanction-screening'].sanction).toBe(true);
@@ -241,7 +241,7 @@ describe('report actions', () => {
       });
 
     const res = await request(app)
-      .post(`/reports/${createRes.body.id}/actions/death-screening`)
+      .post(`/reports/${createRes.body.data.id}/actions/death-screening`)
       .set(authed())
       .send({});
     expect(res.body.data['death-screening']).toEqual({
@@ -272,23 +272,23 @@ describe('report actions', () => {
       .set(authed())
       .send({
         name: `RT ${Date.now()}-actions`,
-        scorecard_id: scorecardRes.body.id,
+        scorecard_id: scorecardRes.body.data.id,
         primary_actions: [],
       });
     const createRes = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id });
+      .send({ report_type_id: reportTypeRes.body.data.id });
 
     const runRes = await request(app)
-      .post(`/reports/${createRes.body.id}/actions/sanction-screening`)
+      .post(`/reports/${createRes.body.data.id}/actions/sanction-screening`)
       .set(authed())
       .send({});
     const sanction = runRes.body.data['sanction-screening'].sanction as boolean;
 
-    const getRes = await request(app).get(`/reports/${createRes.body.id}`).set(authed());
+    const getRes = await request(app).get(`/reports/${createRes.body.data.id}`).set(authed());
     const expectedScore = sanction ? -100 : 20;
-    expect(getRes.body.assessment.score).toBe(expectedScore);
-    expect(getRes.body.assessment.result).toBe(sanction ? 'FAIL' : 'PASS');
+    expect(getRes.body.data.assessment.score).toBe(expectedScore);
+    expect(getRes.body.data.assessment.result).toBe(sanction ? 'FAIL' : 'PASS');
   });
 });

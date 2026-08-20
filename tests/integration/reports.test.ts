@@ -37,11 +37,11 @@ describe('reports', () => {
     const res = await request(app).post('/reports').set(authed()).send(validInline);
 
     expect(res.status).toBe(201);
-    expect(res.body.status).toBe('STARTED');
-    expect(res.body.forename).toBe('Bella');
-    expect(res.body.address).toEqual({ address1: '204 Julius Road', postcode: 'BS7 8EU' });
-    expect(res.body.attributes).toEqual({});
-    expect(res.body.assessment).toBeNull();
+    expect(res.body.data.status).toBe('STARTED');
+    expect(res.body.data.forename).toBe('Bella');
+    expect(res.body.data.address).toEqual({ address1: '204 Julius Road', postcode: 'BS7 8EU' });
+    expect(res.body.data.attributes).toEqual({});
+    expect(res.body.data.assessment).toBeNull();
   });
 
   it('rejects an inline report missing required fields', async () => {
@@ -56,6 +56,117 @@ describe('reports', () => {
     expect(res.body.errors['address.postcode'][0].code).toBe(1054);
   });
 
+  it('rejects invalid characters in name fields with the field-specific code', async () => {
+    const res = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: 'John123', middlename: 'Neil$', surname: 'Jones,' });
+
+    expect(res.status).toBe(422);
+    expect(res.body.errors.forename[0].code).toBe(1286);
+    expect(res.body.errors.surname[0].code).toBe(1287);
+    expect(res.body.errors.middlename[0].code).toBe(1288);
+  });
+
+  it('rejects leading, trailing, and consecutive separators in name fields', async () => {
+    const leading = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: '-Smith' });
+    expect(leading.body.errors.forename[0].code).toBe(1286);
+
+    const trailing = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: 'Smith-' });
+    expect(trailing.body.errors.forename[0].code).toBe(1286);
+
+    const consecutiveHyphens = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: 'Joh--n' });
+    expect(consecutiveHyphens.body.errors.forename[0].code).toBe(1286);
+
+    const consecutiveApostrophes = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: "O''Connor" });
+    expect(consecutiveApostrophes.body.errors.forename[0].code).toBe(1286);
+
+    const consecutiveSpaces = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: 'John  Smith' });
+    expect(consecutiveSpaces.body.errors.forename[0].code).toBe(1286);
+  });
+
+  it('rejects smart apostrophes and en/em dashes in name fields (visually similar, not ASCII)', async () => {
+    const curlyApostrophe = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: 'O’Connor' });
+    expect(curlyApostrophe.body.errors.forename[0].code).toBe(1286);
+
+    const enDash = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: 'Mary–Jane' });
+    expect(enDash.body.errors.forename[0].code).toBe(1286);
+  });
+
+  it('accepts valid Unicode letters and correctly-placed hyphen/apostrophe in name fields', async () => {
+    const res = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: 'García', middlename: "O'Brien", surname: 'Smith-Jones' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.forename).toBe('García');
+    expect(res.body.data.middlename).toBe("O'Brien");
+    expect(res.body.data.surname).toBe('Smith-Jones');
+  });
+
+  it('caps forename/middlename/surname at 64 characters', async () => {
+    const tooLong = 'a'.repeat(65);
+    const exactly64 = 'a'.repeat(64);
+
+    const overLimit = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: tooLong });
+    expect(overLimit.status).toBe(422);
+    expect(overLimit.body.errors.forename[0].code).toBe(1128);
+
+    const atLimit = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({ ...validInline, forename: exactly64 });
+    expect(atLimit.status).toBe(201);
+    expect(atLimit.body.data.forename).toBe(exactly64);
+  });
+
+  it('caps address1-5 at 64 characters and address.postcode at 8', async () => {
+    const overLimitAddress = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({
+        ...validInline,
+        address: { address1: 'a'.repeat(65), postcode: 'BS7 8EU' },
+      });
+    expect(overLimitAddress.status).toBe(422);
+    expect(overLimitAddress.body.errors['address.address1'][0].code).toBe(1131);
+
+    const overLimitPostcode = await request(app)
+      .post('/reports')
+      .set(authed())
+      .send({
+        ...validInline,
+        address: { address1: '204 Julius Road', postcode: 'BS789EUXY' },
+      });
+    expect(overLimitPostcode.status).toBe(422);
+    expect(overLimitPostcode.body.errors['address.postcode'][0].code).toBe(1136);
+  });
+
   it('rejects report_type_id combined with inline fields', async () => {
     const reportTypeRes = await request(app)
       .post('/report-types')
@@ -65,7 +176,7 @@ describe('reports', () => {
     const res = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id, forename: 'Bella' });
+      .send({ report_type_id: reportTypeRes.body.data.id, forename: 'Bella' });
 
     expect(res.status).toBe(422);
     expect(res.body.errors.forename[0].code).toBe(1149);
@@ -90,10 +201,10 @@ describe('reports', () => {
     const res = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id });
+      .send({ report_type_id: reportTypeRes.body.data.id });
 
     expect(res.status).toBe(201);
-    expect(res.body.status).toBe('COMPLETE');
+    expect(res.body.data.status).toBe('COMPLETE');
   });
 
   it('completes immediately for a primary action needing no input beyond the subject (EPIC-7)', async () => {
@@ -105,12 +216,12 @@ describe('reports', () => {
     const res = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id });
+      .send({ report_type_id: reportTypeRes.body.data.id });
 
     expect(res.status).toBe(201);
-    expect(res.body.status).toBe('COMPLETE');
-    expect(res.body['address-verification']).toHaveProperty('address_verified');
-    expect(res.body.attributes).toHaveProperty('address_verified');
+    expect(res.body.data.status).toBe('COMPLETE');
+    expect(res.body.data['address-verification']).toHaveProperty('address_verified');
+    expect(res.body.data.attributes).toHaveProperty('address_verified');
   });
 
   it('stays STARTED for a primary action needing input the create-report request never collects', async () => {
@@ -122,10 +233,10 @@ describe('reports', () => {
     const res = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id });
+      .send({ report_type_id: reportTypeRes.body.data.id });
 
     expect(res.status).toBe(201);
-    expect(res.body.status).toBe('STARTED');
+    expect(res.body.data.status).toBe('STARTED');
   });
 
   it('rejects creating against a report type with reference_required and no reference', async () => {
@@ -137,7 +248,7 @@ describe('reports', () => {
     const res = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id });
+      .send({ report_type_id: reportTypeRes.body.data.id });
 
     expect(res.status).toBe(422);
     expect(res.body.errors.reference[0].code).toBe(1250);
@@ -148,12 +259,12 @@ describe('reports', () => {
       .post('/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-inactive` });
-    await request(app).delete(`/report-types/${reportTypeRes.body.id}`).set(authed());
+    await request(app).delete(`/report-types/${reportTypeRes.body.data.id}`).set(authed());
 
     const res = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id });
+      .send({ report_type_id: reportTypeRes.body.data.id });
 
     expect(res.status).toBe(422);
   });
@@ -179,25 +290,29 @@ describe('reports', () => {
       .set(authed())
       .send({
         name: `RT ${Date.now()}-scored`,
-        scorecard_id: scorecardRes.body.id,
+        scorecard_id: scorecardRes.body.data.id,
         primary_actions: [],
       });
 
     const res = await request(app)
       .post('/reports')
       .set(authed())
-      .send({ report_type_id: reportTypeRes.body.id });
+      .send({ report_type_id: reportTypeRes.body.data.id });
 
     expect(res.status).toBe(201);
-    expect(res.body.assessment).toEqual({ score: -30, result: 'FAIL', groups: expect.any(Array) });
+    expect(res.body.data.assessment).toEqual({
+      score: -30,
+      result: 'FAIL',
+      groups: expect.any(Array),
+    });
   });
 
   it('fetches a report by id and 404s for an unknown id', async () => {
     const createRes = await request(app).post('/reports').set(authed()).send(validInline);
 
-    const getRes = await request(app).get(`/reports/${createRes.body.id}`).set(authed());
+    const getRes = await request(app).get(`/reports/${createRes.body.data.id}`).set(authed());
     expect(getRes.status).toBe(200);
-    expect(getRes.body.id).toBe(createRes.body.id);
+    expect(getRes.body.data.id).toBe(createRes.body.data.id);
 
     const notFoundRes = await request(app)
       .get('/reports/00000000-0000-0000-0000-000000000000')
@@ -206,7 +321,7 @@ describe('reports', () => {
   });
 
   it('lists reports in the paginator envelope, filterable by surname', async () => {
-    const surname = `Unique${Date.now()}`;
+    const surname = 'UniqueSurname';
     await request(app)
       .post('/reports')
       .set(authed())
@@ -221,7 +336,7 @@ describe('reports', () => {
 
   it('soft-deletes a report — subsequent GET 404s', async () => {
     const createRes = await request(app).post('/reports').set(authed()).send(validInline);
-    const id = createRes.body.id;
+    const id = createRes.body.data.id;
 
     const deleteRes = await request(app).delete(`/reports/${id}`).set(authed());
     expect(deleteRes.status).toBe(204);
@@ -231,7 +346,9 @@ describe('reports', () => {
   });
 
   it('filters by postcode (JSON path) and by date_from/date_to', async () => {
-    const postcode = `PC${Date.now()}`;
+    // postcode is capped at 8 characters (see reports/schema.ts) — last 6
+    // digits of the timestamp keeps this unique across runs while fitting.
+    const postcode = `P${String(Date.now()).slice(-6)}`;
     const createRes = await request(app)
       .post('/reports')
       .set(authed())
@@ -241,9 +358,9 @@ describe('reports', () => {
     const postcodeRes = await request(app).get('/reports').query({ postcode }).set(authed());
     expect(postcodeRes.status).toBe(200);
     expect(postcodeRes.body.data.length).toBeGreaterThanOrEqual(1);
-    expect(postcodeRes.body.data.every((r: { id: string }) => r.id === createRes.body.id)).toBe(
-      true,
-    );
+    expect(
+      postcodeRes.body.data.every((r: { id: string }) => r.id === createRes.body.data.id),
+    ).toBe(true);
 
     const today = new Date().toISOString().slice(0, 10);
     const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
@@ -252,9 +369,9 @@ describe('reports', () => {
       .query({ postcode, date_from: today, date_to: tomorrow })
       .set(authed());
     expect(dateRangeRes.status).toBe(200);
-    expect(dateRangeRes.body.data.some((r: { id: string }) => r.id === createRes.body.id)).toBe(
-      true,
-    );
+    expect(
+      dateRangeRes.body.data.some((r: { id: string }) => r.id === createRes.body.data.id),
+    ).toBe(true);
 
     const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
     const outOfRangeRes = await request(app)
@@ -264,9 +381,23 @@ describe('reports', () => {
     expect(outOfRangeRes.body.data.length).toBe(0);
   });
 
+  it('accepts uklexid as an integer but matches nothing (no lexid concept in this replica)', async () => {
+    await request(app).post('/reports').set(authed()).send(validInline);
+
+    const res = await request(app).get('/reports').query({ uklexid: '123' }).set(authed());
+    expect(res.status).toBe(200);
+    expect(res.body.data.length).toBe(0);
+  });
+
+  it('rejects a non-integer uklexid (422/1245)', async () => {
+    const res = await request(app).get('/reports').query({ uklexid: 'abc' }).set(authed());
+    expect(res.status).toBe(422);
+    expect(res.body.errors.uklexid[0].code).toBe(1245);
+  });
+
   it('records audit log entries for create and delete', async () => {
     const createRes = await request(app).post('/reports').set(authed()).send(validInline);
-    const id = createRes.body.id;
+    const id = createRes.body.data.id;
 
     await request(app).delete(`/reports/${id}`).set(authed());
 
@@ -281,7 +412,9 @@ describe('reports', () => {
   it('returns submitted subject fields as input-data', async () => {
     const createRes = await request(app).post('/reports').set(authed()).send(validInline);
 
-    const res = await request(app).get(`/reports/${createRes.body.id}/input-data`).set(authed());
+    const res = await request(app)
+      .get(`/reports/${createRes.body.data.id}/input-data`)
+      .set(authed());
 
     expect(res.status).toBe(200);
     expect(res.body.data).toEqual({

@@ -3,6 +3,7 @@ import { activityLog } from './middleware/activityLog.js';
 import { auth } from './middleware/auth.js';
 import { correlationId } from './middleware/correlationId.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { rateLimiter } from './middleware/rateLimiter.js';
 import { addressLookupRouter } from './modules/addressLookup/routes.js';
 import { authRouter } from './modules/auth/routes.js';
 import { healthRouter } from './modules/health/routes.js';
@@ -26,6 +27,7 @@ export function createApp(): Express {
 
   app.use(auth);
   app.use(activityLog);
+  app.use(rateLimiter);
 
   app.use(addressLookupRouter);
   app.use(reportTypesRouter);

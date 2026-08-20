@@ -32,7 +32,7 @@ reportsRouter.post('/reports', async (req, res, next) => {
   }
   try {
     const report = await createReport(req.client!.id, parsed.data);
-    res.status(201).json(serializeReport(report));
+    res.status(201).json({ data: serializeReport(report) });
   } catch (error) {
     next(error);
   }
@@ -56,7 +56,7 @@ reportsRouter.get('/reports', async (req, res, next) => {
 reportsRouter.get('/reports/:id', async (req, res, next) => {
   try {
     const report = await findReport(req.client!.id, req.params.id);
-    res.status(200).json(serializeReport(report));
+    res.status(200).json({ data: serializeReport(report) });
   } catch (error) {
     next(error);
   }

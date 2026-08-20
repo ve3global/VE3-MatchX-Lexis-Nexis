@@ -131,7 +131,228 @@ function buildItem(spec: RequestSpec): object {
   };
 }
 
+// Matches src/middleware/rateLimiter.ts's `limit` — a replica-only
+// extension (not from the real doc, see README.md), added for demo
+// purposes: 10 requests/second per client, fixed window.
+const RATE_LIMIT_THRESHOLD = 10;
+const RATE_LIMIT_BURST_SIZE = 20;
+
+// Bursts past the threshold in one window — calls 1..RATE_LIMIT_THRESHOLD
+// are expected to succeed, everything after is expected to 429. Relies on
+// the whole burst completing inside the limiter's 1-second fixed window;
+// safe locally (each call takes single-digit-to-low-tens of ms).
+function rateLimitBurstItems(): RequestSpec[] {
+  return Array.from({ length: RATE_LIMIT_BURST_SIZE }, (_, i) => {
+    const n = i + 1;
+    const expectOk = n <= RATE_LIMIT_THRESHOLD;
+    return {
+      name: `GET /report-types — burst call ${n}/${RATE_LIMIT_BURST_SIZE} (expect ${expectOk ? '200' : '429'})`,
+      method: 'GET',
+      path: '/report-types',
+      query: { per_page: '1' },
+      tests: expectOk
+        ? [statusTest(200)]
+        : [statusTest(429), fieldDefinedTest('rate-limit message present', 'message')],
+    };
+  });
+}
+
 const FOLDERS: FolderSpec[] = [
+  {
+    name: 'Run 1 - Happy Path (Demo)',
+    description:
+      'Clean end-to-end walkthrough, zero errors by design: auth, address lookup, scorecard + report type setup, a report that auto-completes and self-scores, an individually-run action (credit-check), and its audit trail. Standalone — acquires its own token, safe to run on its own.',
+    items: [
+      {
+        name: 'POST /oauth/token',
+        method: 'POST',
+        path: '/oauth/token',
+        auth: false,
+        body: { client_id: '{{client_id}}', client_secret: '{{client_secret}}' },
+        tests: [statusTest(200)],
+        saves: [{ as: 'access_token', from: 'access_token' }],
+      },
+      {
+        name: 'POST /address-lookup — doc sample postcode',
+        method: 'POST',
+        path: '/address-lookup',
+        body: { postcode: 'BS7 8EU' },
+        tests: [statusTest(200)],
+      },
+      {
+        name: 'POST /scorecards — create',
+        method: 'POST',
+        path: '/scorecards',
+        body: {
+          name: 'Demo Scorecard {{$timestamp}}',
+          pass_threshold: 20,
+          fail_threshold: -20,
+          groups: [
+            {
+              group_name: 'screening',
+              min_score: 0,
+              rules: [{ attribute: 'sanction', match_score: -100, no_match_score: 20 }],
+            },
+          ],
+        },
+        tests: [statusTest(201)],
+        saves: [{ as: 'demo_scorecard_id', from: 'data.id' }],
+      },
+      {
+        name: 'POST /report-types — create with scorecard + primary action',
+        method: 'POST',
+        path: '/report-types',
+        body: {
+          name: 'Demo Report Type {{$timestamp}}',
+          scorecard_id: '{{demo_scorecard_id}}',
+          primary_actions: ['sanction-screening'],
+        },
+        tests: [statusTest(201)],
+        saves: [{ as: 'demo_report_type_id', from: 'data.id' }],
+      },
+      {
+        name: 'POST /reports — via report_type_id (auto-completes, self-scores)',
+        method: 'POST',
+        path: '/reports',
+        body: { report_type_id: '{{demo_report_type_id}}' },
+        tests: [
+          statusTest(201),
+          fieldEqualsTest('completes automatically', 'data.status', 'COMPLETE'),
+          fieldDefinedTest('assessment computed', 'data.assessment'),
+        ],
+        saves: [{ as: 'demo_report_id', from: 'data.id' }],
+      },
+      {
+        name: 'GET /reports/{id} — fetch',
+        method: 'GET',
+        path: '/reports/{{demo_report_id}}',
+        tests: [statusTest(200)],
+      },
+      {
+        name: 'POST /reports/{id}/actions/credit-check — run individually',
+        method: 'POST',
+        path: '/reports/{{demo_report_id}}/actions/credit-check',
+        body: {},
+        tests: [
+          statusTest(200),
+          fieldDefinedTest('credit_active present', 'data.credit-check.credit_active'),
+        ],
+      },
+      {
+        name: 'GET /reports/{id}/audit — full trail',
+        method: 'GET',
+        path: '/reports/{{demo_report_id}}/audit',
+        tests: [statusTest(200)],
+      },
+    ],
+  },
+
+  {
+    name: 'Run 2 - Rate Limit 429 (Demo)',
+    description: `Bursts ${RATE_LIMIT_BURST_SIZE} rapid GET /report-types calls against the same client. The server allows ${RATE_LIMIT_THRESHOLD}/second (src/middleware/rateLimiter.ts) — a replica-only extension, not from the real doc (see README.md) — so calls ${RATE_LIMIT_THRESHOLD + 1}-${RATE_LIMIT_BURST_SIZE} are expected to come back 429. Standalone — acquires its own token.`,
+    items: [
+      {
+        name: 'POST /oauth/token',
+        method: 'POST',
+        path: '/oauth/token',
+        auth: false,
+        body: { client_id: '{{client_id}}', client_secret: '{{client_secret}}' },
+        tests: [statusTest(200)],
+        saves: [{ as: 'access_token', from: 'access_token' }],
+      },
+      ...rateLimitBurstItems(),
+    ],
+  },
+
+  {
+    name: 'Run 3 - Validation Errors (Demo)',
+    description:
+      'Deliberately bad input across address lookup, report/report-type/scorecard creation, and running an action against a report that does not exist — every request here is expected to fail with a specific error code. Standalone — acquires its own token.',
+    items: [
+      {
+        name: 'POST /oauth/token',
+        method: 'POST',
+        path: '/oauth/token',
+        auth: false,
+        body: { client_id: '{{client_id}}', client_secret: '{{client_secret}}' },
+        tests: [statusTest(200)],
+        saves: [{ as: 'access_token', from: 'access_token' }],
+      },
+      {
+        name: 'POST /address-lookup — missing postcode and full_address (422)',
+        method: 'POST',
+        path: '/address-lookup',
+        body: {},
+        tests: [statusTest(422), errorCodeTest('code 1319 on _lookup', '_lookup', 1319)],
+      },
+      {
+        name: 'POST /address-lookup — wrong type for postcode (422)',
+        method: 'POST',
+        path: '/address-lookup',
+        body: { postcode: 123 },
+        tests: [statusTest(422), errorCodeTest('code 1032 on postcode', 'postcode', 1032)],
+      },
+      {
+        name: 'POST /reports — inline, missing every required field (422)',
+        method: 'POST',
+        path: '/reports',
+        body: {},
+        tests: [
+          statusTest(422),
+          errorCodeTest('forename required (1007)', 'forename', 1007),
+          errorCodeTest('surname required (1010)', 'surname', 1010),
+          errorCodeTest('enduser_agreement required (1055)', 'enduser_agreement', 1055),
+        ],
+      },
+      {
+        name: 'POST /reports — malformed forename, consecutive apostrophes (422/1286)',
+        method: 'POST',
+        path: '/reports',
+        body: {
+          forename: "O''Connor",
+          surname: 'Test',
+          dob: '1980-01-01',
+          address: { address1: '1 Test Street', postcode: 'TE1 1ST' },
+          enduser_agreement: true,
+        },
+        tests: [statusTest(422), errorCodeTest('code 1286 on forename', 'forename', 1286)],
+      },
+      {
+        name: 'POST /report-types — nonexistent scorecard_id (422)',
+        method: 'POST',
+        path: '/report-types',
+        body: {
+          name: 'Bad Scorecard RT {{$timestamp}}',
+          scorecard_id: '00000000-0000-0000-0000-000000000000',
+        },
+        tests: [statusTest(422), errorCodeTest('code 1179 on scorecard_id', 'scorecard_id', 1179)],
+      },
+      {
+        name: 'POST /scorecards — invalid rule attribute (422)',
+        method: 'POST',
+        path: '/scorecards',
+        body: {
+          name: 'Bad Attribute SC {{$timestamp}}',
+          groups: [
+            {
+              group_name: 'g',
+              min_score: 0,
+              rules: [{ attribute: 'not_a_real_attribute', match_score: 1, no_match_score: -1 }],
+            },
+          ],
+        },
+        tests: [statusTest(422), errorCodeTest('code 1171', 'groups.0.rules.0.attribute', 1171)],
+      },
+      {
+        name: 'POST /reports/{id}/actions/credit-check — unknown report id (404)',
+        method: 'POST',
+        path: '/reports/00000000-0000-0000-0000-000000000000/actions/credit-check',
+        body: {},
+        tests: [statusTest(404)],
+      },
+    ],
+  },
+
   {
     name: '00 - Health',
     items: [
@@ -354,10 +575,10 @@ const FOLDERS: FolderSpec[] = [
         },
         tests: [
           statusTest(201),
-          fieldEqualsTest('starts as DRAFT', 'status', 'DRAFT'),
-          fieldEqualsTest('starts at version 1', 'version', 1),
+          fieldEqualsTest('starts as DRAFT', 'data.status', 'DRAFT'),
+          fieldEqualsTest('starts at version 1', 'data.version', 1),
         ],
-        saves: [{ as: 'scorecard_id', from: 'id' }],
+        saves: [{ as: 'scorecard_id', from: 'data.id' }],
       },
       {
         name: 'POST /scorecards — pass_threshold <= fail_threshold (422)',
@@ -404,13 +625,13 @@ const FOLDERS: FolderSpec[] = [
         method: 'PATCH',
         path: '/scorecards/{{scorecard_id}}',
         body: { pass_threshold: 90 },
-        tests: [statusTest(200), fieldEqualsTest('version bumped to 2', 'version', 2)],
+        tests: [statusTest(200), fieldEqualsTest('version bumped to 2', 'data.version', 2)],
       },
       {
         name: 'POST /scorecards/{id}/publish — extension (LN29)',
         method: 'POST',
         path: '/scorecards/{{scorecard_id}}/publish',
-        tests: [statusTest(200), fieldEqualsTest('status PUBLISHED', 'status', 'PUBLISHED')],
+        tests: [statusTest(200), fieldEqualsTest('status PUBLISHED', 'data.status', 'PUBLISHED')],
       },
     ],
   },
@@ -427,8 +648,8 @@ const FOLDERS: FolderSpec[] = [
           scorecard_id: '{{scorecard_id}}',
           primary_actions: ['sanction-screening'],
         },
-        tests: [statusTest(201), fieldEqualsTest('starts ACTIVE', 'status', 'ACTIVE')],
-        saves: [{ as: 'report_type_id', from: 'id' }],
+        tests: [statusTest(201), fieldEqualsTest('starts ACTIVE', 'data.status', 'ACTIVE')],
+        saves: [{ as: 'report_type_id', from: 'data.id' }],
       },
       {
         name: 'POST /report-types — unknown report action (422)',
@@ -477,8 +698,29 @@ const FOLDERS: FolderSpec[] = [
         body: { description: 'Updated via Postman' },
         tests: [
           statusTest(200),
-          fieldEqualsTest('description updated', 'description', 'Updated via Postman'),
+          fieldEqualsTest('description updated', 'data.description', 'Updated via Postman'),
         ],
+      },
+      {
+        name: 'GET /report-types — filter by username (no match for a made-up one)',
+        method: 'GET',
+        path: '/report-types',
+        query: { username: 'no-such-user-{{$timestamp}}' },
+        tests: [statusTest(200), fieldEqualsTest('empty result set', 'data', [])],
+      },
+      {
+        name: 'GET /report-types — order_by name desc',
+        method: 'GET',
+        path: '/report-types',
+        query: { order_by: 'name', order: 'desc' },
+        tests: [statusTest(200)],
+      },
+      {
+        name: 'GET /report-types — invalid order_by (422/1319)',
+        method: 'GET',
+        path: '/report-types',
+        query: { order_by: 'not_a_real_column' },
+        tests: [statusTest(422), errorCodeTest('code 1319', 'order_by', 1319)],
       },
     ],
   },
@@ -509,8 +751,8 @@ const FOLDERS: FolderSpec[] = [
           address: { address1: '204 Julius Road', postcode: 'BS7 8EU' },
           enduser_agreement: true,
         },
-        tests: [statusTest(201), fieldEqualsTest('starts STARTED', 'status', 'STARTED')],
-        saves: [{ as: 'report_id', from: 'id' }],
+        tests: [statusTest(201), fieldEqualsTest('starts STARTED', 'data.status', 'STARTED')],
+        saves: [{ as: 'report_id', from: 'data.id' }],
       },
       {
         name: 'POST /reports — report_type_id combined with inline field (422/1149)',
@@ -526,10 +768,10 @@ const FOLDERS: FolderSpec[] = [
         body: { report_type_id: '{{report_type_id}}' },
         tests: [
           statusTest(201),
-          fieldEqualsTest('completes automatically (no-body action)', 'status', 'COMPLETE'),
-          fieldDefinedTest('assessment computed from the attached scorecard', 'assessment'),
+          fieldEqualsTest('completes automatically (no-body action)', 'data.status', 'COMPLETE'),
+          fieldDefinedTest('assessment computed from the attached scorecard', 'data.assessment'),
         ],
-        saves: [{ as: 'scored_report_id', from: 'id' }],
+        saves: [{ as: 'scored_report_id', from: 'data.id' }],
       },
       {
         name: 'GET /reports — list, filter by surname',
@@ -537,6 +779,13 @@ const FOLDERS: FolderSpec[] = [
         path: '/reports',
         query: { surname: 'Henderson' },
         tests: [statusTest(200), fieldDefinedTest('meta present', 'meta')],
+      },
+      {
+        name: 'GET /reports — uklexid filter (accepted, matches nothing — no lexid concept)',
+        method: 'GET',
+        path: '/reports',
+        query: { uklexid: '123' },
+        tests: [statusTest(200), fieldEqualsTest('empty result set', 'data', [])],
       },
       {
         name: 'GET /reports/{id} — fetch',
@@ -591,7 +840,7 @@ const FOLDERS: FolderSpec[] = [
           enduser_agreement: true,
         },
         tests: [statusTest(201)],
-        saves: [{ as: 'sanctioned_report_id', from: 'id' }],
+        saves: [{ as: 'sanctioned_report_id', from: 'data.id' }],
       },
       {
         name: 'POST /reports/{id}/actions/sanction-screening — QA override forces sanction:true',
@@ -615,7 +864,7 @@ const FOLDERS: FolderSpec[] = [
           enduser_agreement: true,
         },
         tests: [statusTest(201)],
-        saves: [{ as: 'death_report_id', from: 'id' }],
+        saves: [{ as: 'death_report_id', from: 'data.id' }],
       },
       {
         name: 'POST /reports/{id}/actions/death-screening — QA override forces all 3 flags true',
@@ -697,7 +946,7 @@ const FOLDERS: FolderSpec[] = [
           enduser_agreement: true,
         },
         tests: [statusTest(201)],
-        saves: [{ as: 'rc_report_id', from: 'id' }],
+        saves: [{ as: 'rc_report_id', from: 'data.id' }],
       },
       {
         name: 'POST .../actions/remote-check — start (IN_PROGRESS)',
@@ -769,7 +1018,7 @@ const FOLDERS: FolderSpec[] = [
           enduser_agreement: true,
         },
         tests: [statusTest(201)],
-        saves: [{ as: 'rc_cancel_report_id', from: 'id' }],
+        saves: [{ as: 'rc_cancel_report_id', from: 'data.id' }],
       },
       {
         name: 'POST .../remote-check/cancel — no transaction yet (422/1321)',

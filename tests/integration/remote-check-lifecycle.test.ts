@@ -31,17 +31,17 @@ describe('remote-check lifecycle', () => {
         address: { address1: '1 Test Street', postcode: 'TE1 1ST' },
         enduser_agreement: true,
       });
-    return res.body.id;
+    return res.body.data.id;
   }
 
   it('rejects an unauthenticated request', async () => {
-    const id = await createInlineReport(`RC${Date.now()}`);
+    const id = await createInlineReport('RemoteCheckUnauth');
     const res = await request(app).post(`/reports/${id}/actions/remote-check`);
     expect(res.status).toBe(401);
   });
 
   it('starts a transaction, rejecting a second start while in progress (1312)', async () => {
-    const id = await createInlineReport(`RC${Date.now()}a`);
+    const id = await createInlineReport('RemoteCheckStart');
 
     const startRes = await request(app)
       .post(`/reports/${id}/actions/remote-check`)
@@ -58,7 +58,7 @@ describe('remote-check lifecycle', () => {
   });
 
   it('resolves results deterministically and idempotently, then blocks re-running remote-check (1313) and any other action (1325)', async () => {
-    const id = await createInlineReport(`RC${Date.now()}b`);
+    const id = await createInlineReport('RemoteCheckResolve');
     await request(app).post(`/reports/${id}/actions/remote-check`).set(authed()).send({});
 
     const firstResults = await request(app)
@@ -88,11 +88,11 @@ describe('remote-check lifecycle', () => {
     expect(otherActionRes.body.errors._report[0].code).toBe(1325);
 
     const reportRes = await request(app).get(`/reports/${id}`).set(authed());
-    expect(reportRes.body['remote-check']).toHaveProperty('remote_check_completed', true);
+    expect(reportRes.body.data['remote-check']).toHaveProperty('remote_check_completed', true);
   });
 
   it('cancel: 422/1321 with no transaction, succeeds while in progress, allows restarting after cancel', async () => {
-    const id = await createInlineReport(`RC${Date.now()}c`);
+    const id = await createInlineReport('RemoteCheckCancel');
 
     const noTransactionRes = await request(app)
       .post(`/reports/${id}/actions/remote-check/cancel`)
@@ -115,7 +115,7 @@ describe('remote-check lifecycle', () => {
   });
 
   it('resend: 422/1338 when not in progress, succeeds while in progress', async () => {
-    const id = await createInlineReport(`RC${Date.now()}d`);
+    const id = await createInlineReport('RemoteCheckResend');
 
     const noTransactionRes = await request(app)
       .post(`/reports/${id}/actions/remote-check/resend`)
@@ -137,7 +137,7 @@ describe('remote-check lifecycle', () => {
   });
 
   it('pdf: 422 before completion, a stub payload after', async () => {
-    const id = await createInlineReport(`RC${Date.now()}e`);
+    const id = await createInlineReport('RemoteCheckPdf');
     await request(app).post(`/reports/${id}/actions/remote-check`).set(authed()).send({});
 
     const tooEarlyRes = await request(app)
