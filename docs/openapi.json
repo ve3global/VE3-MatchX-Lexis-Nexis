@@ -393,8 +393,21 @@
         }
       }
     },
-    "/webhooks": {
-      "post": {
+    "/users/self/webhook-url": {
+      "put": {
+        "tags": [
+          "extension"
+        ],
+        "summary": "Replica-only extension — not part of the documented API (see README.md).",
+        "responses": {
+          "200": {
+            "description": "See planning/specs for this route's response shape."
+          }
+        }
+      }
+    },
+    "/users/self/webhook-secret": {
+      "put": {
         "tags": [
           "documented"
         ],
@@ -403,7 +416,9 @@
             "description": "See planning/specs for this route's response shape."
           }
         }
-      },
+      }
+    },
+    "/webhooks": {
       "get": {
         "tags": [
           "documented"
@@ -417,38 +432,6 @@
     },
     "/webhooks/{id}": {
       "get": {
-        "tags": [
-          "documented"
-        ],
-        "responses": {
-          "200": {
-            "description": "See planning/specs for this route's response shape."
-          }
-        }
-      },
-      "patch": {
-        "tags": [
-          "documented"
-        ],
-        "responses": {
-          "200": {
-            "description": "See planning/specs for this route's response shape."
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "documented"
-        ],
-        "responses": {
-          "200": {
-            "description": "See planning/specs for this route's response shape."
-          }
-        }
-      }
-    },
-    "/webhooks/{id}/test": {
-      "post": {
         "tags": [
           "documented"
         ],
@@ -471,7 +454,7 @@
         }
       }
     },
-    "/webhooks/{id}/secret": {
+    "/webhooks/test": {
       "post": {
         "tags": [
           "documented"
