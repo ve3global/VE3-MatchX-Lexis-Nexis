@@ -11,7 +11,7 @@ describe('remote-check lifecycle', () => {
 
   beforeAll(async () => {
     const res = await request(app)
-      .post('/oauth/token')
+      .post('/lexis-nexis/oauth/token')
       .send({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET });
     token = res.body.access_token;
   });
@@ -22,7 +22,7 @@ describe('remote-check lifecycle', () => {
 
   async function createInlineReport(surname: string) {
     const res = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({
         forename: 'Bella',
@@ -36,7 +36,7 @@ describe('remote-check lifecycle', () => {
 
   it('rejects an unauthenticated request', async () => {
     const id = await createInlineReport('RemoteCheckUnauth');
-    const res = await request(app).post(`/reports/${id}/actions/remote-check`);
+    const res = await request(app).post(`/lexis-nexis/reports/${id}/actions/remote-check`);
     expect(res.status).toBe(401);
   });
 
@@ -44,14 +44,14 @@ describe('remote-check lifecycle', () => {
     const id = await createInlineReport('RemoteCheckStart');
 
     const startRes = await request(app)
-      .post(`/reports/${id}/actions/remote-check`)
+      .post(`/lexis-nexis/reports/${id}/actions/remote-check`)
       .set(authed())
       .send({});
     expect(startRes.status).toBe(200);
     expect(startRes.body.data['remote-check'].remote_check_status).toBe('IN_PROGRESS');
 
     const secondStartRes = await request(app)
-      .post(`/reports/${id}/actions/remote-check`)
+      .post(`/lexis-nexis/reports/${id}/actions/remote-check`)
       .set(authed())
       .send({});
     expect(secondStartRes.status).toBe(422);
@@ -59,35 +59,38 @@ describe('remote-check lifecycle', () => {
 
   it('resolves results deterministically and idempotently, then blocks re-running remote-check (1313) and any other action (1325)', async () => {
     const id = await createInlineReport('RemoteCheckResolve');
-    await request(app).post(`/reports/${id}/actions/remote-check`).set(authed()).send({});
+    await request(app)
+      .post(`/lexis-nexis/reports/${id}/actions/remote-check`)
+      .set(authed())
+      .send({});
 
     const firstResults = await request(app)
-      .get(`/reports/${id}/actions/remote-check/results`)
+      .get(`/lexis-nexis/reports/${id}/actions/remote-check/results`)
       .set(authed());
     expect(firstResults.status).toBe(200);
     expect(firstResults.body.data.remote_check_status).toBe('COMPLETED');
     expect(['PASS', 'FAIL']).toContain(firstResults.body.data.remote_check_result);
 
     const secondResults = await request(app)
-      .get(`/reports/${id}/actions/remote-check/results`)
+      .get(`/lexis-nexis/reports/${id}/actions/remote-check/results`)
       .set(authed());
     expect(secondResults.body.data).toEqual(firstResults.body.data);
 
     const rerunRes = await request(app)
-      .post(`/reports/${id}/actions/remote-check`)
+      .post(`/lexis-nexis/reports/${id}/actions/remote-check`)
       .set(authed())
       .send({});
     expect(rerunRes.status).toBe(422);
     expect(rerunRes.body.errors._remote_check[0].code).toBe(1313);
 
     const otherActionRes = await request(app)
-      .post(`/reports/${id}/actions/dob-verification`)
+      .post(`/lexis-nexis/reports/${id}/actions/dob-verification`)
       .set(authed())
       .send({});
     expect(otherActionRes.status).toBe(422);
     expect(otherActionRes.body.errors._report[0].code).toBe(1325);
 
-    const reportRes = await request(app).get(`/reports/${id}`).set(authed());
+    const reportRes = await request(app).get(`/lexis-nexis/reports/${id}`).set(authed());
     expect(reportRes.body.data['remote-check']).toHaveProperty('remote_check_completed', true);
   });
 
@@ -95,19 +98,22 @@ describe('remote-check lifecycle', () => {
     const id = await createInlineReport('RemoteCheckCancel');
 
     const noTransactionRes = await request(app)
-      .post(`/reports/${id}/actions/remote-check/cancel`)
+      .post(`/lexis-nexis/reports/${id}/actions/remote-check/cancel`)
       .set(authed());
     expect(noTransactionRes.status).toBe(422);
 
-    await request(app).post(`/reports/${id}/actions/remote-check`).set(authed()).send({});
+    await request(app)
+      .post(`/lexis-nexis/reports/${id}/actions/remote-check`)
+      .set(authed())
+      .send({});
     const cancelRes = await request(app)
-      .post(`/reports/${id}/actions/remote-check/cancel`)
+      .post(`/lexis-nexis/reports/${id}/actions/remote-check/cancel`)
       .set(authed());
     expect(cancelRes.status).toBe(200);
     expect(cancelRes.body.data.remote_check_status).toBe('CANCELLED');
 
     const restartRes = await request(app)
-      .post(`/reports/${id}/actions/remote-check`)
+      .post(`/lexis-nexis/reports/${id}/actions/remote-check`)
       .set(authed())
       .send({});
     expect(restartRes.status).toBe(200);
@@ -118,35 +124,43 @@ describe('remote-check lifecycle', () => {
     const id = await createInlineReport('RemoteCheckResend');
 
     const noTransactionRes = await request(app)
-      .post(`/reports/${id}/actions/remote-check/resend`)
+      .post(`/lexis-nexis/reports/${id}/actions/remote-check/resend`)
       .set(authed());
     expect(noTransactionRes.status).toBe(422);
 
-    await request(app).post(`/reports/${id}/actions/remote-check`).set(authed()).send({});
+    await request(app)
+      .post(`/lexis-nexis/reports/${id}/actions/remote-check`)
+      .set(authed())
+      .send({});
     const resendRes = await request(app)
-      .post(`/reports/${id}/actions/remote-check/resend`)
+      .post(`/lexis-nexis/reports/${id}/actions/remote-check/resend`)
       .set(authed());
     expect(resendRes.status).toBe(200);
     expect(resendRes.body.data.remote_check_status).toBe('IN_PROGRESS');
 
-    await request(app).get(`/reports/${id}/actions/remote-check/results`).set(authed());
+    await request(app).get(`/lexis-nexis/reports/${id}/actions/remote-check/results`).set(authed());
     const resendAfterCompleteRes = await request(app)
-      .post(`/reports/${id}/actions/remote-check/resend`)
+      .post(`/lexis-nexis/reports/${id}/actions/remote-check/resend`)
       .set(authed());
     expect(resendAfterCompleteRes.status).toBe(422);
   });
 
   it('pdf: 422 before completion, a stub payload after', async () => {
     const id = await createInlineReport('RemoteCheckPdf');
-    await request(app).post(`/reports/${id}/actions/remote-check`).set(authed()).send({});
+    await request(app)
+      .post(`/lexis-nexis/reports/${id}/actions/remote-check`)
+      .set(authed())
+      .send({});
 
     const tooEarlyRes = await request(app)
-      .get(`/reports/${id}/actions/remote-check/pdf`)
+      .get(`/lexis-nexis/reports/${id}/actions/remote-check/pdf`)
       .set(authed());
     expect(tooEarlyRes.status).toBe(422);
 
-    await request(app).get(`/reports/${id}/actions/remote-check/results`).set(authed());
-    const pdfRes = await request(app).get(`/reports/${id}/actions/remote-check/pdf`).set(authed());
+    await request(app).get(`/lexis-nexis/reports/${id}/actions/remote-check/results`).set(authed());
+    const pdfRes = await request(app)
+      .get(`/lexis-nexis/reports/${id}/actions/remote-check/pdf`)
+      .set(authed());
     expect(pdfRes.status).toBe(200);
     expect(pdfRes.body.data.content_type).toBe('application/pdf');
   });

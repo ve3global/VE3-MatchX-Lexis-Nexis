@@ -13,7 +13,7 @@ describe('webhooks', () => {
 
   beforeAll(async () => {
     const res = await request(app)
-      .post('/oauth/token')
+      .post('/lexis-nexis/oauth/token')
       .send({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET });
     token = res.body.access_token;
     const client = await prisma.client.findUniqueOrThrow({ where: { clientId: CLIENT_ID } });
@@ -33,27 +33,27 @@ describe('webhooks', () => {
 
   async function configureWebhook() {
     await request(app)
-      .put('/users/self/webhook-url')
+      .put('/lexis-nexis/users/self/webhook-url')
       .set(authed())
       .send({ notification_webhook_url: 'https://example.invalid/webhook' });
-    const res = await request(app).put('/users/self/webhook-secret').set(authed());
+    const res = await request(app).put('/lexis-nexis/users/self/webhook-secret').set(authed());
     return res.body.secret as string;
   }
 
   it('rejects an unauthenticated request', async () => {
-    const res = await request(app).get('/webhooks?date_from=2021-01-01T00:00:00Z');
+    const res = await request(app).get('/lexis-nexis/webhooks?date_from=2021-01-01T00:00:00Z');
     expect(res.status).toBe(401);
   });
 
   it('rejects generating a secret with no webhook URL configured (428)', async () => {
     await resetWebhookConfig();
-    const res = await request(app).put('/users/self/webhook-secret').set(authed());
+    const res = await request(app).put('/lexis-nexis/users/self/webhook-secret').set(authed());
     expect(res.status).toBe(428);
   });
 
   it('rejects a non-https url', async () => {
     const res = await request(app)
-      .put('/users/self/webhook-url')
+      .put('/lexis-nexis/users/self/webhook-url')
       .set(authed())
       .send({ notification_webhook_url: 'http://example.invalid/webhook' });
     expect(res.status).toBe(422);
@@ -62,7 +62,7 @@ describe('webhooks', () => {
 
   it('rejects a malformed url', async () => {
     const res = await request(app)
-      .put('/users/self/webhook-url')
+      .put('/lexis-nexis/users/self/webhook-url')
       .set(authed())
       .send({ notification_webhook_url: 'not-a-url' });
     expect(res.status).toBe(422);
@@ -72,33 +72,37 @@ describe('webhooks', () => {
   it('sets a url and generates a secret once it exists', async () => {
     await resetWebhookConfig();
     const urlRes = await request(app)
-      .put('/users/self/webhook-url')
+      .put('/lexis-nexis/users/self/webhook-url')
       .set(authed())
       .send({ notification_webhook_url: 'https://example.invalid/webhook' });
     expect(urlRes.status).toBe(200);
 
-    const secretRes = await request(app).put('/users/self/webhook-secret').set(authed());
+    const secretRes = await request(app)
+      .put('/lexis-nexis/users/self/webhook-secret')
+      .set(authed());
     expect(secretRes.status).toBe(200);
     expect(typeof secretRes.body.secret).toBe('string');
     expect(secretRes.body.secret.length).toBeGreaterThan(0);
   });
 
   it('requires date_from on the list endpoint (1299)', async () => {
-    const res = await request(app).get('/webhooks').set(authed());
+    const res = await request(app).get('/lexis-nexis/webhooks').set(authed());
     expect(res.status).toBe(422);
     expect(res.body.errors.date_from[0].code).toBe(1299);
   });
 
   it('rejects date_to before date_from (1300)', async () => {
     const res = await request(app)
-      .get('/webhooks?date_from=2021-08-10T08:32:28Z&date_to=2021-08-09T08:32:28Z')
+      .get('/lexis-nexis/webhooks?date_from=2021-08-10T08:32:28Z&date_to=2021-08-09T08:32:28Z')
       .set(authed());
     expect(res.status).toBe(422);
     expect(res.body.errors.date_to[0].code).toBe(1300);
   });
 
   it('lists webhook messages in the paginator envelope', async () => {
-    const res = await request(app).get('/webhooks?date_from=2021-01-01T00:00:00Z').set(authed());
+    const res = await request(app)
+      .get('/lexis-nexis/webhooks?date_from=2021-01-01T00:00:00Z')
+      .set(authed());
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('data');
     expect(res.body).toHaveProperty('links');
@@ -109,7 +113,7 @@ describe('webhooks', () => {
     await configureWebhook();
 
     const reportRes = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({
         forename: 'Bella',
@@ -120,8 +124,13 @@ describe('webhooks', () => {
       });
     const reportId = reportRes.body.data.id;
 
-    await request(app).post(`/reports/${reportId}/actions/remote-check`).set(authed()).send({});
-    await request(app).get(`/reports/${reportId}/actions/remote-check/results`).set(authed());
+    await request(app)
+      .post(`/lexis-nexis/reports/${reportId}/actions/remote-check`)
+      .set(authed())
+      .send({});
+    await request(app)
+      .get(`/lexis-nexis/reports/${reportId}/actions/remote-check/results`)
+      .set(authed());
 
     const messages = await prisma.webhookMessage.findMany({
       where: { clientId: clientRowId, type: 'remote-check.check-completed' },
@@ -134,7 +143,7 @@ describe('webhooks', () => {
     });
     expect(messages[0].attempts.length).toBeGreaterThan(0);
 
-    const getRes = await request(app).get(`/webhooks/${messages[0].id}`).set(authed());
+    const getRes = await request(app).get(`/lexis-nexis/webhooks/${messages[0].id}`).set(authed());
     expect(getRes.status).toBe(200);
     expect(getRes.body.type).toBe('remote-check.check-completed');
     expect(getRes.body.attempts.length).toBeGreaterThan(0);
@@ -151,7 +160,7 @@ describe('webhooks', () => {
       },
     });
 
-    const res = await request(app).post(`/webhooks/${message.id}/retry`).set(authed());
+    const res = await request(app).post(`/lexis-nexis/webhooks/${message.id}/retry`).set(authed());
     expect(res.status).toBe(422);
     expect(res.body.errors._webhook[0].code).toBe(1303);
   });
@@ -167,7 +176,7 @@ describe('webhooks', () => {
       },
     });
 
-    const res = await request(app).post(`/webhooks/${message.id}/retry`).set(authed());
+    const res = await request(app).post(`/lexis-nexis/webhooks/${message.id}/retry`).set(authed());
     expect(res.status).toBe(202);
 
     const attempts = await prisma.webhookAttempt.count({ where: { messageId: message.id } });
@@ -180,7 +189,7 @@ describe('webhooks', () => {
 
     const start = Date.now();
     const res = await request(app)
-      .post('/webhooks/test')
+      .post('/lexis-nexis/webhooks/test')
       .set(authed())
       .send({ event_type: 'remote-check.invitation-expired' });
     const elapsedMs = Date.now() - start;
@@ -196,7 +205,7 @@ describe('webhooks', () => {
   it('signs a test message with an invalid secret when valid_signature is false', async () => {
     await configureWebhook();
     const res = await request(app)
-      .post('/webhooks/test')
+      .post('/lexis-nexis/webhooks/test')
       .set(authed())
       .send({ valid_signature: false, event_type: 'remote-check.check-completed' });
 

@@ -20,7 +20,7 @@ describe('POST /oauth/token', () => {
 
   it('returns a bearer token for valid credentials', async () => {
     const res = await request(app)
-      .post('/oauth/token')
+      .post('/lexis-nexis/oauth/token')
       .send({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET });
 
     expect(res.status).toBe(200);
@@ -34,7 +34,7 @@ describe('POST /oauth/token', () => {
 
   it('returns the doc-compliant 401 body for invalid credentials', async () => {
     const res = await request(app)
-      .post('/oauth/token')
+      .post('/lexis-nexis/oauth/token')
       .send({ client_id: CLIENT_ID, client_secret: 'wrong-secret' });
 
     expect(res.status).toBe(401);
@@ -43,7 +43,7 @@ describe('POST /oauth/token', () => {
 
   it('returns the doc-compliant 401 body for an unknown client_id', async () => {
     const res = await request(app)
-      .post('/oauth/token')
+      .post('/lexis-nexis/oauth/token')
       .send({ client_id: 'no-such-client', client_secret: CLIENT_SECRET });
 
     expect(res.status).toBe(401);
@@ -51,7 +51,7 @@ describe('POST /oauth/token', () => {
   });
 
   it('returns 422 with field-level detail for a malformed body', async () => {
-    const res = await request(app).post('/oauth/token').send({ client_id: CLIENT_ID });
+    const res = await request(app).post('/lexis-nexis/oauth/token').send({ client_id: CLIENT_ID });
 
     expect(res.status).toBe(422);
     expect(res.body.errors.client_secret[0].code).toBe(1319);
@@ -63,11 +63,11 @@ describe('POST /oauth/token/revoke (extension)', () => {
 
   it('revokes all active tokens for the client', async () => {
     await request(app)
-      .post('/oauth/token')
+      .post('/lexis-nexis/oauth/token')
       .send({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET });
 
     const res = await request(app)
-      .post('/oauth/token/revoke')
+      .post('/lexis-nexis/oauth/token/revoke')
       .send({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET });
 
     expect(res.status).toBe(200);

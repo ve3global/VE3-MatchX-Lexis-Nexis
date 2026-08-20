@@ -18,7 +18,7 @@
         }
       }
     },
-    "/oauth/token": {
+    "/lexis-nexis/oauth/token": {
       "post": {
         "tags": [
           "documented"
@@ -30,7 +30,7 @@
         }
       }
     },
-    "/oauth/token/revoke": {
+    "/lexis-nexis/oauth/token/revoke": {
       "post": {
         "tags": [
           "extension"
@@ -43,7 +43,7 @@
         }
       }
     },
-    "/address-lookup": {
+    "/lexis-nexis/address-lookup": {
       "post": {
         "tags": [
           "documented"
@@ -55,7 +55,7 @@
         }
       }
     },
-    "/addresses": {
+    "/lexis-nexis/addresses": {
       "get": {
         "tags": [
           "extension"
@@ -68,7 +68,7 @@
         }
       }
     },
-    "/addresses/search": {
+    "/lexis-nexis/addresses/search": {
       "get": {
         "tags": [
           "extension"
@@ -81,7 +81,7 @@
         }
       }
     },
-    "/addresses/{reference}": {
+    "/lexis-nexis/addresses/{reference}": {
       "get": {
         "tags": [
           "extension"
@@ -94,7 +94,7 @@
         }
       }
     },
-    "/report-types": {
+    "/lexis-nexis/report-types": {
       "post": {
         "tags": [
           "documented"
@@ -116,7 +116,7 @@
         }
       }
     },
-    "/report-types/{id}": {
+    "/lexis-nexis/report-types/{id}": {
       "get": {
         "tags": [
           "documented"
@@ -148,7 +148,7 @@
         }
       }
     },
-    "/report-types/{id}/reactivate": {
+    "/lexis-nexis/report-types/{id}/reactivate": {
       "post": {
         "tags": [
           "extension"
@@ -161,7 +161,7 @@
         }
       }
     },
-    "/scorecards": {
+    "/lexis-nexis/scorecards": {
       "post": {
         "tags": [
           "documented"
@@ -183,7 +183,7 @@
         }
       }
     },
-    "/scorecards/{id}": {
+    "/lexis-nexis/scorecards/{id}": {
       "get": {
         "tags": [
           "documented"
@@ -215,7 +215,7 @@
         }
       }
     },
-    "/scorecards/{id}/publish": {
+    "/lexis-nexis/scorecards/{id}/publish": {
       "post": {
         "tags": [
           "extension"
@@ -228,7 +228,7 @@
         }
       }
     },
-    "/scorecards/{id}/retire": {
+    "/lexis-nexis/scorecards/{id}/retire": {
       "post": {
         "tags": [
           "extension"
@@ -241,7 +241,7 @@
         }
       }
     },
-    "/reports": {
+    "/lexis-nexis/reports": {
       "post": {
         "tags": [
           "documented"
@@ -263,7 +263,7 @@
         }
       }
     },
-    "/reports/{id}": {
+    "/lexis-nexis/reports/{id}": {
       "get": {
         "tags": [
           "documented"
@@ -285,7 +285,7 @@
         }
       }
     },
-    "/reports/{id}/audit": {
+    "/lexis-nexis/reports/{id}/audit": {
       "get": {
         "tags": [
           "documented"
@@ -297,7 +297,7 @@
         }
       }
     },
-    "/reports/{id}/input-data": {
+    "/lexis-nexis/reports/{id}/input-data": {
       "get": {
         "tags": [
           "documented"
@@ -309,7 +309,7 @@
         }
       }
     },
-    "/reports/{id}/actions/{action}": {
+    "/lexis-nexis/reports/{id}/actions/{action}": {
       "post": {
         "tags": [
           "documented"
@@ -321,7 +321,7 @@
         }
       }
     },
-    "/reports/{id}/actions/remote-check/cancel": {
+    "/lexis-nexis/reports/{id}/actions/remote-check/cancel": {
       "post": {
         "tags": [
           "documented"
@@ -333,7 +333,7 @@
         }
       }
     },
-    "/reports/{id}/actions/remote-check/resend": {
+    "/lexis-nexis/reports/{id}/actions/remote-check/resend": {
       "post": {
         "tags": [
           "documented"
@@ -345,7 +345,7 @@
         }
       }
     },
-    "/reports/{id}/actions/remote-check/results": {
+    "/lexis-nexis/reports/{id}/actions/remote-check/results": {
       "get": {
         "tags": [
           "documented"
@@ -357,7 +357,7 @@
         }
       }
     },
-    "/reports/{id}/actions/remote-check/pdf": {
+    "/lexis-nexis/reports/{id}/actions/remote-check/pdf": {
       "get": {
         "tags": [
           "documented"
@@ -369,7 +369,7 @@
         }
       }
     },
-    "/notifications": {
+    "/lexis-nexis/notifications": {
       "get": {
         "tags": [
           "documented"
@@ -381,7 +381,7 @@
         }
       }
     },
-    "/notifications/{id}": {
+    "/lexis-nexis/notifications/{id}": {
       "patch": {
         "tags": [
           "documented"
@@ -393,7 +393,7 @@
         }
       }
     },
-    "/users/self/webhook-url": {
+    "/lexis-nexis/users/self/webhook-url": {
       "put": {
         "tags": [
           "extension"
@@ -406,7 +406,7 @@
         }
       }
     },
-    "/users/self/webhook-secret": {
+    "/lexis-nexis/users/self/webhook-secret": {
       "put": {
         "tags": [
           "documented"
@@ -418,7 +418,7 @@
         }
       }
     },
-    "/webhooks": {
+    "/lexis-nexis/webhooks": {
       "get": {
         "tags": [
           "documented"
@@ -430,7 +430,7 @@
         }
       }
     },
-    "/webhooks/{id}": {
+    "/lexis-nexis/webhooks/{id}": {
       "get": {
         "tags": [
           "documented"
@@ -442,7 +442,7 @@
         }
       }
     },
-    "/webhooks/{id}/retry": {
+    "/lexis-nexis/webhooks/{id}/retry": {
       "post": {
         "tags": [
           "documented"
@@ -454,7 +454,7 @@
         }
       }
     },
-    "/webhooks/test": {
+    "/lexis-nexis/webhooks/test": {
       "post": {
         "tags": [
           "documented"
@@ -466,7 +466,7 @@
         }
       }
     },
-    "/users/self": {
+    "/lexis-nexis/users/self": {
       "get": {
         "tags": [
           "documented"
@@ -488,7 +488,7 @@
         }
       }
     },
-    "/users/company": {
+    "/lexis-nexis/users/company": {
       "get": {
         "tags": [
           "extension"
@@ -512,7 +512,7 @@
         }
       }
     },
-    "/users/options": {
+    "/lexis-nexis/users/options": {
       "get": {
         "tags": [
           "documented"
@@ -534,7 +534,7 @@
         }
       }
     },
-    "/users/activity-logs": {
+    "/lexis-nexis/users/activity-logs": {
       "get": {
         "tags": [
           "documented"

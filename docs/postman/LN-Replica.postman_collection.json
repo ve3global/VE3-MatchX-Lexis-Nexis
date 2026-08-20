@@ -37,7 +37,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/oauth/token",
+            "url": "{{base_url}}/lexis-nexis/oauth/token",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"client_id\": \"{{client_id}}\",\n  \"client_secret\": \"{{client_secret}}\"\n}"
@@ -70,7 +70,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/address-lookup",
+            "url": "{{base_url}}/lexis-nexis/address-lookup",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"postcode\": \"BS7 8EU\"\n}"
@@ -102,7 +102,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/scorecards",
+            "url": "{{base_url}}/lexis-nexis/scorecards",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Demo Scorecard {{$timestamp}}\",\n  \"pass_threshold\": 20,\n  \"fail_threshold\": -20,\n  \"groups\": [\n    {\n      \"group_name\": \"screening\",\n      \"min_score\": 0,\n      \"rules\": [\n        {\n          \"attribute\": \"sanction\",\n          \"match_score\": -100,\n          \"no_match_score\": 20\n        }\n      ]\n    }\n  ]\n}"
@@ -135,7 +135,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types",
+            "url": "{{base_url}}/lexis-nexis/report-types",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Demo Report Type {{$timestamp}}\",\n  \"scorecard_id\": \"{{demo_scorecard_id}}\",\n  \"primary_actions\": [\n    \"sanction-screening\"\n  ]\n}"
@@ -168,7 +168,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports",
+            "url": "{{base_url}}/lexis-nexis/reports",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"report_type_id\": \"{{demo_report_type_id}}\"\n}"
@@ -199,7 +199,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{demo_report_id}}"
+            "url": "{{base_url}}/lexis-nexis/reports/{{demo_report_id}}"
           },
           "event": [
             {
@@ -227,7 +227,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{demo_report_id}}/actions/credit-check",
+            "url": "{{base_url}}/lexis-nexis/reports/{{demo_report_id}}/actions/credit-check",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -256,7 +256,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{demo_report_id}}/audit"
+            "url": "{{base_url}}/lexis-nexis/reports/{{demo_report_id}}/audit"
           },
           "event": [
             {
@@ -286,7 +286,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/oauth/token",
+            "url": "{{base_url}}/lexis-nexis/oauth/token",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"client_id\": \"{{client_id}}\",\n  \"client_secret\": \"{{client_secret}}\"\n}"
@@ -315,7 +315,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -339,7 +339,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -363,7 +363,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -387,7 +387,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -411,7 +411,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -435,7 +435,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -459,7 +459,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -483,7 +483,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -507,7 +507,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -531,7 +531,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -555,7 +555,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -580,7 +580,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -605,7 +605,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -630,7 +630,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -655,7 +655,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -680,7 +680,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -705,7 +705,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -730,7 +730,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -755,7 +755,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -780,7 +780,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?per_page=1"
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
           },
           "event": [
             {
@@ -811,7 +811,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/oauth/token",
+            "url": "{{base_url}}/lexis-nexis/oauth/token",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"client_id\": \"{{client_id}}\",\n  \"client_secret\": \"{{client_secret}}\"\n}"
@@ -844,7 +844,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/address-lookup",
+            "url": "{{base_url}}/lexis-nexis/address-lookup",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -877,7 +877,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/address-lookup",
+            "url": "{{base_url}}/lexis-nexis/address-lookup",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"postcode\": 123\n}"
@@ -910,7 +910,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports",
+            "url": "{{base_url}}/lexis-nexis/reports",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -945,7 +945,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports",
+            "url": "{{base_url}}/lexis-nexis/reports",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"forename\": \"O''Connor\",\n  \"surname\": \"Test\",\n  \"dob\": \"1980-01-01\",\n  \"address\": {\n    \"address1\": \"1 Test Street\",\n    \"postcode\": \"TE1 1ST\"\n  },\n  \"enduser_agreement\": true\n}"
@@ -978,7 +978,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types",
+            "url": "{{base_url}}/lexis-nexis/report-types",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Bad Scorecard RT {{$timestamp}}\",\n  \"scorecard_id\": \"00000000-0000-0000-0000-000000000000\"\n}"
@@ -1011,7 +1011,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/scorecards",
+            "url": "{{base_url}}/lexis-nexis/scorecards",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Bad Attribute SC {{$timestamp}}\",\n  \"groups\": [\n    {\n      \"group_name\": \"g\",\n      \"min_score\": 0,\n      \"rules\": [\n        {\n          \"attribute\": \"not_a_real_attribute\",\n          \"match_score\": 1,\n          \"no_match_score\": -1\n        }\n      ]\n    }\n  ]\n}"
@@ -1044,7 +1044,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/00000000-0000-0000-0000-000000000000/actions/credit-check",
+            "url": "{{base_url}}/lexis-nexis/reports/00000000-0000-0000-0000-000000000000/actions/credit-check",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -1102,7 +1102,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/oauth/token",
+            "url": "{{base_url}}/lexis-nexis/oauth/token",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"client_id\": \"{{client_id}}\",\n  \"client_secret\": \"{{client_secret}}\"\n}"
@@ -1133,7 +1133,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/oauth/token",
+            "url": "{{base_url}}/lexis-nexis/oauth/token",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"client_id\": \"{{client_id}}\",\n  \"client_secret\": \"wrong-secret\"\n}"
@@ -1162,7 +1162,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/oauth/token",
+            "url": "{{base_url}}/lexis-nexis/oauth/token",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"client_id\": \"no-such-client\",\n  \"client_secret\": \"{{client_secret}}\"\n}"
@@ -1190,7 +1190,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/oauth/token",
+            "url": "{{base_url}}/lexis-nexis/oauth/token",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"client_id\": \"{{client_id}}\"\n}"
@@ -1214,7 +1214,7 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{base_url}}/definitely-not-a-real-route"
+            "url": "{{base_url}}/lexis-nexis/definitely-not-a-real-route"
           },
           "event": [
             {
@@ -1239,7 +1239,7 @@
                 "value": "Token abc123"
               }
             ],
-            "url": "{{base_url}}/definitely-not-a-real-route"
+            "url": "{{base_url}}/lexis-nexis/definitely-not-a-real-route"
           },
           "event": [
             {
@@ -1264,7 +1264,7 @@
                 "value": "Bearer not-a-real-token"
               }
             ],
-            "url": "{{base_url}}/definitely-not-a-real-route"
+            "url": "{{base_url}}/lexis-nexis/definitely-not-a-real-route"
           },
           "event": [
             {
@@ -1289,7 +1289,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/definitely-not-a-real-route"
+            "url": "{{base_url}}/lexis-nexis/definitely-not-a-real-route"
           },
           "event": [
             {
@@ -1313,7 +1313,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/oauth/token/revoke",
+            "url": "{{base_url}}/lexis-nexis/oauth/token/revoke",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"client_id\": \"{{client_id}}\",\n  \"client_secret\": \"{{client_secret}}\"\n}"
@@ -1342,7 +1342,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/definitely-not-a-real-route"
+            "url": "{{base_url}}/lexis-nexis/definitely-not-a-real-route"
           },
           "event": [
             {
@@ -1367,7 +1367,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/oauth/token",
+            "url": "{{base_url}}/lexis-nexis/oauth/token",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"client_id\": \"{{client_id}}\",\n  \"client_secret\": \"{{client_secret}}\"\n}"
@@ -1405,7 +1405,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/address-lookup",
+            "url": "{{base_url}}/lexis-nexis/address-lookup",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"postcode\": \"BS7 8EU\"\n}"
@@ -1439,7 +1439,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/address-lookup",
+            "url": "{{base_url}}/lexis-nexis/address-lookup",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -1472,7 +1472,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/address-lookup",
+            "url": "{{base_url}}/lexis-nexis/address-lookup",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"postcode\": 123\n}"
@@ -1501,7 +1501,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/addresses?postcode=BS7%208EU"
+            "url": "{{base_url}}/lexis-nexis/addresses?postcode=BS7%208EU"
           },
           "event": [
             {
@@ -1526,7 +1526,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/addresses/search?q=Julius%20Road"
+            "url": "{{base_url}}/lexis-nexis/addresses/search?q=Julius%20Road"
           },
           "event": [
             {
@@ -1550,7 +1550,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/addresses/{{address_reference}}"
+            "url": "{{base_url}}/lexis-nexis/addresses/{{address_reference}}"
           },
           "event": [
             {
@@ -1575,7 +1575,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/addresses/not-a-real-reference"
+            "url": "{{base_url}}/lexis-nexis/addresses/not-a-real-reference"
           },
           "event": [
             {
@@ -1608,7 +1608,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/scorecards",
+            "url": "{{base_url}}/lexis-nexis/scorecards",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Postman Scorecard {{$timestamp}}\",\n  \"pass_threshold\": 80,\n  \"fail_threshold\": 40,\n  \"groups\": [\n    {\n      \"group_name\": \"screening\",\n      \"min_score\": 0,\n      \"rules\": [\n        {\n          \"attribute\": \"sanction\",\n          \"match_score\": -100,\n          \"no_match_score\": 20\n        }\n      ]\n    }\n  ]\n}"
@@ -1643,7 +1643,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/scorecards",
+            "url": "{{base_url}}/lexis-nexis/scorecards",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Bad Threshold {{$timestamp}}\",\n  \"pass_threshold\": 10,\n  \"fail_threshold\": 40,\n  \"groups\": []\n}"
@@ -1676,7 +1676,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/scorecards",
+            "url": "{{base_url}}/lexis-nexis/scorecards",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Bad Attribute {{$timestamp}}\",\n  \"groups\": [\n    {\n      \"group_name\": \"g\",\n      \"min_score\": 0,\n      \"rules\": [\n        {\n          \"attribute\": \"not_a_real_attribute\",\n          \"match_score\": 1,\n          \"no_match_score\": -1\n        }\n      ]\n    }\n  ]\n}"
@@ -1705,7 +1705,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/scorecards"
+            "url": "{{base_url}}/lexis-nexis/scorecards"
           },
           "event": [
             {
@@ -1730,7 +1730,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/scorecards/{{scorecard_id}}"
+            "url": "{{base_url}}/lexis-nexis/scorecards/{{scorecard_id}}"
           },
           "event": [
             {
@@ -1758,7 +1758,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/scorecards/{{scorecard_id}}",
+            "url": "{{base_url}}/lexis-nexis/scorecards/{{scorecard_id}}",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"pass_threshold\": 90\n}"
@@ -1787,7 +1787,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/scorecards/{{scorecard_id}}/publish"
+            "url": "{{base_url}}/lexis-nexis/scorecards/{{scorecard_id}}/publish"
           },
           "event": [
             {
@@ -1821,7 +1821,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types",
+            "url": "{{base_url}}/lexis-nexis/report-types",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Postman Report Type {{$timestamp}}\",\n  \"scorecard_id\": \"{{scorecard_id}}\",\n  \"primary_actions\": [\n    \"sanction-screening\"\n  ]\n}"
@@ -1855,7 +1855,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types",
+            "url": "{{base_url}}/lexis-nexis/report-types",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Bad Action RT {{$timestamp}}\",\n  \"primary_actions\": [\n    \"not-a-real-action\"\n  ]\n}"
@@ -1888,7 +1888,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types",
+            "url": "{{base_url}}/lexis-nexis/report-types",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Overlap RT {{$timestamp}}\",\n  \"primary_actions\": [\n    \"pep-screening\"\n  ],\n  \"secondary_actions\": [\n    \"pep-screening\"\n  ]\n}"
@@ -1918,7 +1918,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types"
+            "url": "{{base_url}}/lexis-nexis/report-types"
           },
           "event": [
             {
@@ -1943,7 +1943,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types/{{report_type_id}}"
+            "url": "{{base_url}}/lexis-nexis/report-types/{{report_type_id}}"
           },
           "event": [
             {
@@ -1967,7 +1967,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types/00000000-0000-0000-0000-000000000000"
+            "url": "{{base_url}}/lexis-nexis/report-types/00000000-0000-0000-0000-000000000000"
           },
           "event": [
             {
@@ -1995,7 +1995,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types/{{report_type_id}}",
+            "url": "{{base_url}}/lexis-nexis/report-types/{{report_type_id}}",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"description\": \"Updated via Postman\"\n}"
@@ -2024,7 +2024,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?username=no-such-user-%7B%7B%24timestamp%7D%7D"
+            "url": "{{base_url}}/lexis-nexis/report-types?username=no-such-user-%7B%7B%24timestamp%7D%7D"
           },
           "event": [
             {
@@ -2049,7 +2049,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?order_by=name&order=desc"
+            "url": "{{base_url}}/lexis-nexis/report-types?order_by=name&order=desc"
           },
           "event": [
             {
@@ -2073,7 +2073,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/report-types?order_by=not_a_real_column"
+            "url": "{{base_url}}/lexis-nexis/report-types?order_by=not_a_real_column"
           },
           "event": [
             {
@@ -2107,7 +2107,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports",
+            "url": "{{base_url}}/lexis-nexis/reports",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -2142,7 +2142,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports",
+            "url": "{{base_url}}/lexis-nexis/reports",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"forename\": \"Bella\",\n  \"surname\": \"Henderson\",\n  \"dob\": \"1980-01-01\",\n  \"address\": {\n    \"address1\": \"204 Julius Road\",\n    \"postcode\": \"BS7 8EU\"\n  },\n  \"enduser_agreement\": true\n}"
@@ -2176,7 +2176,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports",
+            "url": "{{base_url}}/lexis-nexis/reports",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"report_type_id\": \"{{report_type_id}}\",\n  \"forename\": \"Bella\"\n}"
@@ -2209,7 +2209,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports",
+            "url": "{{base_url}}/lexis-nexis/reports",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"report_type_id\": \"{{report_type_id}}\"\n}"
@@ -2240,7 +2240,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports?surname=Henderson"
+            "url": "{{base_url}}/lexis-nexis/reports?surname=Henderson"
           },
           "event": [
             {
@@ -2265,7 +2265,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports?uklexid=123"
+            "url": "{{base_url}}/lexis-nexis/reports?uklexid=123"
           },
           "event": [
             {
@@ -2290,7 +2290,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{report_id}}"
+            "url": "{{base_url}}/lexis-nexis/reports/{{report_id}}"
           },
           "event": [
             {
@@ -2314,7 +2314,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/00000000-0000-0000-0000-000000000000"
+            "url": "{{base_url}}/lexis-nexis/reports/00000000-0000-0000-0000-000000000000"
           },
           "event": [
             {
@@ -2338,7 +2338,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{report_id}}/input-data"
+            "url": "{{base_url}}/lexis-nexis/reports/{{report_id}}/input-data"
           },
           "event": [
             {
@@ -2372,7 +2372,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{report_id}}/actions/dob-verification",
+            "url": "{{base_url}}/lexis-nexis/reports/{{report_id}}/actions/dob-verification",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -2405,7 +2405,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{report_id}}/actions/not-a-real-action",
+            "url": "{{base_url}}/lexis-nexis/reports/{{report_id}}/actions/not-a-real-action",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -2437,7 +2437,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports",
+            "url": "{{base_url}}/lexis-nexis/reports",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"forename\": \"Test\",\n  \"surname\": \"SANCTIONED\",\n  \"dob\": \"1980-01-01\",\n  \"address\": {\n    \"address1\": \"1 Test Street\",\n    \"postcode\": \"TE1 1ST\"\n  },\n  \"enduser_agreement\": true\n}"
@@ -2470,7 +2470,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{sanctioned_report_id}}/actions/sanction-screening",
+            "url": "{{base_url}}/lexis-nexis/reports/{{sanctioned_report_id}}/actions/sanction-screening",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -2503,7 +2503,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports",
+            "url": "{{base_url}}/lexis-nexis/reports",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"forename\": \"Test\",\n  \"surname\": \"Deceased\",\n  \"dob\": \"1900-01-01\",\n  \"address\": {\n    \"address1\": \"1 Test Street\",\n    \"postcode\": \"TE1 1ST\"\n  },\n  \"enduser_agreement\": true\n}"
@@ -2536,7 +2536,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{death_report_id}}/actions/death-screening",
+            "url": "{{base_url}}/lexis-nexis/reports/{{death_report_id}}/actions/death-screening",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -2571,7 +2571,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{report_id}}/actions/bank-account-validation",
+            "url": "{{base_url}}/lexis-nexis/reports/{{report_id}}/actions/bank-account-validation",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"bank_details\": {\n    \"sort_code\": \"abc\",\n    \"account_number\": \"123\"\n  }\n}"
@@ -2604,7 +2604,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{report_id}}/actions/bank-account-validation",
+            "url": "{{base_url}}/lexis-nexis/reports/{{report_id}}/actions/bank-account-validation",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"bank_details\": {\n    \"sort_code\": \"123456\",\n    \"account_number\": \"12345678\"\n  }\n}"
@@ -2633,7 +2633,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{report_id}}/input-data"
+            "url": "{{base_url}}/lexis-nexis/reports/{{report_id}}/input-data"
           },
           "event": [
             {
@@ -2662,7 +2662,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{report_id}}/actions/otp-email",
+            "url": "{{base_url}}/lexis-nexis/reports/{{report_id}}/actions/otp-email",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"test@example.com\"\n}"
@@ -2695,7 +2695,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{report_id}}/actions/otp-email-verification",
+            "url": "{{base_url}}/lexis-nexis/reports/{{report_id}}/actions/otp-email-verification",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"code\": \"{{otp_code}}\"\n}"
@@ -2733,7 +2733,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports",
+            "url": "{{base_url}}/lexis-nexis/reports",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"forename\": \"Remote\",\n  \"surname\": \"Check\",\n  \"dob\": \"1985-05-05\",\n  \"address\": {\n    \"address1\": \"1 Test Street\",\n    \"postcode\": \"TE1 1ST\"\n  },\n  \"enduser_agreement\": true\n}"
@@ -2766,7 +2766,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{rc_report_id}}/actions/remote-check",
+            "url": "{{base_url}}/lexis-nexis/reports/{{rc_report_id}}/actions/remote-check",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -2799,7 +2799,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{rc_report_id}}/actions/remote-check",
+            "url": "{{base_url}}/lexis-nexis/reports/{{rc_report_id}}/actions/remote-check",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -2828,7 +2828,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{rc_report_id}}/actions/remote-check/results"
+            "url": "{{base_url}}/lexis-nexis/reports/{{rc_report_id}}/actions/remote-check/results"
           },
           "event": [
             {
@@ -2853,7 +2853,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{rc_report_id}}/actions/remote-check/results"
+            "url": "{{base_url}}/lexis-nexis/reports/{{rc_report_id}}/actions/remote-check/results"
           },
           "event": [
             {
@@ -2882,7 +2882,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{rc_report_id}}/actions/remote-check",
+            "url": "{{base_url}}/lexis-nexis/reports/{{rc_report_id}}/actions/remote-check",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -2915,7 +2915,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{rc_report_id}}/actions/dob-verification",
+            "url": "{{base_url}}/lexis-nexis/reports/{{rc_report_id}}/actions/dob-verification",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -2944,7 +2944,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{rc_report_id}}/actions/remote-check/pdf"
+            "url": "{{base_url}}/lexis-nexis/reports/{{rc_report_id}}/actions/remote-check/pdf"
           },
           "event": [
             {
@@ -2973,7 +2973,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports",
+            "url": "{{base_url}}/lexis-nexis/reports",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"forename\": \"Remote\",\n  \"surname\": \"CancelTest\",\n  \"dob\": \"1985-05-05\",\n  \"address\": {\n    \"address1\": \"1 Test Street\",\n    \"postcode\": \"TE1 1ST\"\n  },\n  \"enduser_agreement\": true\n}"
@@ -3002,7 +3002,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{rc_cancel_report_id}}/actions/remote-check/cancel"
+            "url": "{{base_url}}/lexis-nexis/reports/{{rc_cancel_report_id}}/actions/remote-check/cancel"
           },
           "event": [
             {
@@ -3031,7 +3031,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{rc_cancel_report_id}}/actions/remote-check",
+            "url": "{{base_url}}/lexis-nexis/reports/{{rc_cancel_report_id}}/actions/remote-check",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -3059,7 +3059,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{rc_cancel_report_id}}/actions/remote-check/cancel"
+            "url": "{{base_url}}/lexis-nexis/reports/{{rc_cancel_report_id}}/actions/remote-check/cancel"
           },
           "event": [
             {
@@ -3084,7 +3084,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{rc_cancel_report_id}}/actions/remote-check/resend"
+            "url": "{{base_url}}/lexis-nexis/reports/{{rc_cancel_report_id}}/actions/remote-check/resend"
           },
           "event": [
             {
@@ -3113,7 +3113,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/reports/{{rc_cancel_report_id}}/actions/remote-check",
+            "url": "{{base_url}}/lexis-nexis/reports/{{rc_cancel_report_id}}/actions/remote-check",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -3147,7 +3147,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/notifications"
+            "url": "{{base_url}}/lexis-nexis/notifications"
           },
           "event": [
             {
@@ -3173,7 +3173,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/notifications?read=false"
+            "url": "{{base_url}}/lexis-nexis/notifications?read=false"
           },
           "event": [
             {
@@ -3201,7 +3201,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/notifications/{{notification_id}}",
+            "url": "{{base_url}}/lexis-nexis/notifications/{{notification_id}}",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"read\": true\n}"
@@ -3234,7 +3234,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/notifications/{{notification_id}}",
+            "url": "{{base_url}}/lexis-nexis/notifications/{{notification_id}}",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -3272,7 +3272,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/webhooks",
+            "url": "{{base_url}}/lexis-nexis/webhooks",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"notification_webhook_url\": \"http://example.invalid/hook\",\n  \"notification_webhook_secret\": \"x\"\n}"
@@ -3305,7 +3305,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/webhooks",
+            "url": "{{base_url}}/lexis-nexis/webhooks",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"notification_webhook_url\": \"https://example.invalid/hook\",\n  \"notification_webhook_secret\": \"topsecret\"\n}"
@@ -3334,7 +3334,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/webhooks"
+            "url": "{{base_url}}/lexis-nexis/webhooks"
           },
           "event": [
             {
@@ -3358,7 +3358,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/webhooks/{{webhook_id}}/test"
+            "url": "{{base_url}}/lexis-nexis/webhooks/{{webhook_id}}/test"
           },
           "event": [
             {
@@ -3384,7 +3384,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/webhooks/{{webhook_id}}/retry"
+            "url": "{{base_url}}/lexis-nexis/webhooks/{{webhook_id}}/retry"
           },
           "event": [
             {
@@ -3408,7 +3408,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/webhooks/{{webhook_id}}/secret"
+            "url": "{{base_url}}/lexis-nexis/webhooks/{{webhook_id}}/secret"
           },
           "event": [
             {
@@ -3433,7 +3433,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/webhooks/{{webhook_id}}"
+            "url": "{{base_url}}/lexis-nexis/webhooks/{{webhook_id}}"
           },
           "event": [
             {
@@ -3463,7 +3463,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/users/self"
+            "url": "{{base_url}}/lexis-nexis/users/self"
           },
           "event": [
             {
@@ -3491,7 +3491,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/users/self",
+            "url": "{{base_url}}/lexis-nexis/users/self",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"postman_user_{{$timestamp}}\",\n  \"gender\": \"other\"\n}"
@@ -3524,7 +3524,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/users/self",
+            "url": "{{base_url}}/lexis-nexis/users/self",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"gender\": \"not-a-real-option\"\n}"
@@ -3553,7 +3553,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/users/company"
+            "url": "{{base_url}}/lexis-nexis/users/company"
           },
           "event": [
             {
@@ -3581,7 +3581,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/users/company",
+            "url": "{{base_url}}/lexis-nexis/users/company",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Postman Test Co\"\n}"
@@ -3610,7 +3610,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/users/options"
+            "url": "{{base_url}}/lexis-nexis/users/options"
           },
           "event": [
             {
@@ -3640,7 +3640,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/users/options",
+            "url": "{{base_url}}/lexis-nexis/users/options",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"remote_check\": true\n}"
@@ -3673,7 +3673,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/users/options",
+            "url": "{{base_url}}/lexis-nexis/users/options",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"remote_check\": false\n}"
@@ -3706,7 +3706,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/users/options",
+            "url": "{{base_url}}/lexis-nexis/users/options",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"config\": {\n    \"age_min\": 50,\n    \"age_max\": 20\n  }\n}"
@@ -3735,7 +3735,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/users/activity-logs?status=422"
+            "url": "{{base_url}}/lexis-nexis/users/activity-logs?status=422"
           },
           "event": [
             {

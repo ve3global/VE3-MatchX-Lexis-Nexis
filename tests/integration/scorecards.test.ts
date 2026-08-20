@@ -12,7 +12,7 @@ describe('scorecards', () => {
 
   beforeAll(async () => {
     const res = await request(app)
-      .post('/oauth/token')
+      .post('/lexis-nexis/oauth/token')
       .send({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET });
     token = res.body.access_token;
   });
@@ -23,7 +23,7 @@ describe('scorecards', () => {
 
   async function createValidScorecard(name: string) {
     return request(app)
-      .post('/scorecards')
+      .post('/lexis-nexis/scorecards')
       .set(authed())
       .send({
         name,
@@ -40,7 +40,7 @@ describe('scorecards', () => {
   }
 
   it('rejects an unauthenticated request', async () => {
-    const res = await request(app).get('/scorecards');
+    const res = await request(app).get('/lexis-nexis/scorecards');
     expect(res.status).toBe(401);
   });
 
@@ -54,7 +54,7 @@ describe('scorecards', () => {
 
   it('rejects pass_threshold <= fail_threshold', async () => {
     const res = await request(app)
-      .post('/scorecards')
+      .post('/lexis-nexis/scorecards')
       .set(authed())
       .send({
         name: `SC ${Date.now()}-badthreshold`,
@@ -69,7 +69,7 @@ describe('scorecards', () => {
 
   it('rejects an unknown rule attribute', async () => {
     const res = await request(app)
-      .post('/scorecards')
+      .post('/lexis-nexis/scorecards')
       .set(authed())
       .send({
         name: `SC ${Date.now()}-badattr`,
@@ -88,7 +88,7 @@ describe('scorecards', () => {
 
   it('rejects a duplicate attribute within one group', async () => {
     const res = await request(app)
-      .post('/scorecards')
+      .post('/lexis-nexis/scorecards')
       .set(authed())
       .send({
         name: `SC ${Date.now()}-duprule`,
@@ -110,7 +110,7 @@ describe('scorecards', () => {
 
   it('rejects duplicate group_name across groups', async () => {
     const res = await request(app)
-      .post('/scorecards')
+      .post('/lexis-nexis/scorecards')
       .set(authed())
       .send({
         name: `SC ${Date.now()}-dupgroup`,
@@ -135,7 +135,7 @@ describe('scorecards', () => {
   });
 
   it('lists scorecards in the paginator envelope', async () => {
-    const res = await request(app).get('/scorecards').set(authed());
+    const res = await request(app).get('/lexis-nexis/scorecards').set(authed());
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('data');
@@ -145,7 +145,7 @@ describe('scorecards', () => {
 
   it('404s fetching an unknown scorecard id', async () => {
     const res = await request(app)
-      .get('/scorecards/00000000-0000-0000-0000-000000000000')
+      .get('/lexis-nexis/scorecards/00000000-0000-0000-0000-000000000000')
       .set(authed());
     expect(res.status).toBe(404);
   });
@@ -155,7 +155,7 @@ describe('scorecards', () => {
     const id = createRes.body.data.id;
 
     const patchRes = await request(app)
-      .patch(`/scorecards/${id}`)
+      .patch(`/lexis-nexis/scorecards/${id}`)
       .set(authed())
       .send({ pass_threshold: 90 });
 
@@ -167,10 +167,10 @@ describe('scorecards', () => {
   it('rejects editing a RETIRED scorecard', async () => {
     const createRes = await createValidScorecard(`SC ${Date.now()}-editretired`);
     const id = createRes.body.data.id;
-    await request(app).post(`/scorecards/${id}/retire`).set(authed());
+    await request(app).post(`/lexis-nexis/scorecards/${id}/retire`).set(authed());
 
     const patchRes = await request(app)
-      .patch(`/scorecards/${id}`)
+      .patch(`/lexis-nexis/scorecards/${id}`)
       .set(authed())
       .send({ pass_threshold: 90 });
 
@@ -181,19 +181,25 @@ describe('scorecards', () => {
     const createRes = await createValidScorecard(`SC ${Date.now()}-lifecycle`);
     const id = createRes.body.data.id;
 
-    const publishRes = await request(app).post(`/scorecards/${id}/publish`).set(authed());
+    const publishRes = await request(app)
+      .post(`/lexis-nexis/scorecards/${id}/publish`)
+      .set(authed());
     expect(publishRes.status).toBe(200);
     expect(publishRes.body.data.status).toBe('PUBLISHED');
 
-    const publishAgainRes = await request(app).post(`/scorecards/${id}/publish`).set(authed());
+    const publishAgainRes = await request(app)
+      .post(`/lexis-nexis/scorecards/${id}/publish`)
+      .set(authed());
     expect(publishAgainRes.status).toBe(200);
     expect(publishAgainRes.body.data.status).toBe('PUBLISHED');
 
-    const retireRes = await request(app).post(`/scorecards/${id}/retire`).set(authed());
+    const retireRes = await request(app).post(`/lexis-nexis/scorecards/${id}/retire`).set(authed());
     expect(retireRes.status).toBe(200);
     expect(retireRes.body.data.status).toBe('RETIRED');
 
-    const retireAgainRes = await request(app).post(`/scorecards/${id}/retire`).set(authed());
+    const retireAgainRes = await request(app)
+      .post(`/lexis-nexis/scorecards/${id}/retire`)
+      .set(authed());
     expect(retireAgainRes.status).toBe(200);
     expect(retireAgainRes.body.data.status).toBe('RETIRED');
   });
@@ -203,12 +209,14 @@ describe('scorecards', () => {
     const scorecardId = createRes.body.data.id;
 
     const reportTypeRes = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-attached`, scorecard_id: scorecardId });
     expect(reportTypeRes.status).toBe(201);
 
-    const deleteRes = await request(app).delete(`/scorecards/${scorecardId}`).set(authed());
+    const deleteRes = await request(app)
+      .delete(`/lexis-nexis/scorecards/${scorecardId}`)
+      .set(authed());
     expect(deleteRes.status).toBe(422);
     expect(deleteRes.body.errors.scorecard_id[0].code).toBe(1241);
 
@@ -217,20 +225,22 @@ describe('scorecards', () => {
       data: { scorecardId: null },
     });
 
-    const deleteAgainRes = await request(app).delete(`/scorecards/${scorecardId}`).set(authed());
+    const deleteAgainRes = await request(app)
+      .delete(`/lexis-nexis/scorecards/${scorecardId}`)
+      .set(authed());
     expect(deleteAgainRes.status).toBe(204);
 
-    const getRes = await request(app).get(`/scorecards/${scorecardId}`).set(authed());
+    const getRes = await request(app).get(`/lexis-nexis/scorecards/${scorecardId}`).set(authed());
     expect(getRes.status).toBe(404);
   });
 
   it('rejects assigning a RETIRED scorecard as a new report type scorecard_id', async () => {
     const createRes = await createValidScorecard(`SC ${Date.now()}-retiredassign`);
     const scorecardId = createRes.body.data.id;
-    await request(app).post(`/scorecards/${scorecardId}/retire`).set(authed());
+    await request(app).post(`/lexis-nexis/scorecards/${scorecardId}/retire`).set(authed());
 
     const reportTypeRes = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-retiredassign`, scorecard_id: scorecardId });
 

@@ -11,7 +11,7 @@ describe('reports', () => {
 
   beforeAll(async () => {
     const res = await request(app)
-      .post('/oauth/token')
+      .post('/lexis-nexis/oauth/token')
       .send({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET });
     token = res.body.access_token;
   });
@@ -29,12 +29,12 @@ describe('reports', () => {
   };
 
   it('rejects an unauthenticated request', async () => {
-    const res = await request(app).get('/reports');
+    const res = await request(app).get('/lexis-nexis/reports');
     expect(res.status).toBe(401);
   });
 
   it('creates an inline report as STARTED', async () => {
-    const res = await request(app).post('/reports').set(authed()).send(validInline);
+    const res = await request(app).post('/lexis-nexis/reports').set(authed()).send(validInline);
 
     expect(res.status).toBe(201);
     expect(res.body.data.status).toBe('STARTED');
@@ -45,7 +45,7 @@ describe('reports', () => {
   });
 
   it('rejects an inline report missing required fields', async () => {
-    const res = await request(app).post('/reports').set(authed()).send({});
+    const res = await request(app).post('/lexis-nexis/reports').set(authed()).send({});
 
     expect(res.status).toBe(422);
     expect(res.body.errors.forename[0].code).toBe(1007);
@@ -58,7 +58,7 @@ describe('reports', () => {
 
   it('rejects invalid characters in name fields with the field-specific code', async () => {
     const res = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ ...validInline, forename: 'John123', middlename: 'Neil$', surname: 'Jones,' });
 
@@ -70,31 +70,31 @@ describe('reports', () => {
 
   it('rejects leading, trailing, and consecutive separators in name fields', async () => {
     const leading = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ ...validInline, forename: '-Smith' });
     expect(leading.body.errors.forename[0].code).toBe(1286);
 
     const trailing = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ ...validInline, forename: 'Smith-' });
     expect(trailing.body.errors.forename[0].code).toBe(1286);
 
     const consecutiveHyphens = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ ...validInline, forename: 'Joh--n' });
     expect(consecutiveHyphens.body.errors.forename[0].code).toBe(1286);
 
     const consecutiveApostrophes = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ ...validInline, forename: "O''Connor" });
     expect(consecutiveApostrophes.body.errors.forename[0].code).toBe(1286);
 
     const consecutiveSpaces = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ ...validInline, forename: 'John  Smith' });
     expect(consecutiveSpaces.body.errors.forename[0].code).toBe(1286);
@@ -102,13 +102,13 @@ describe('reports', () => {
 
   it('rejects smart apostrophes and en/em dashes in name fields (visually similar, not ASCII)', async () => {
     const curlyApostrophe = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ ...validInline, forename: 'O’Connor' });
     expect(curlyApostrophe.body.errors.forename[0].code).toBe(1286);
 
     const enDash = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ ...validInline, forename: 'Mary–Jane' });
     expect(enDash.body.errors.forename[0].code).toBe(1286);
@@ -116,7 +116,7 @@ describe('reports', () => {
 
   it('accepts valid Unicode letters and correctly-placed hyphen/apostrophe in name fields', async () => {
     const res = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ ...validInline, forename: 'García', middlename: "O'Brien", surname: 'Smith-Jones' });
 
@@ -131,14 +131,14 @@ describe('reports', () => {
     const exactly64 = 'a'.repeat(64);
 
     const overLimit = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ ...validInline, forename: tooLong });
     expect(overLimit.status).toBe(422);
     expect(overLimit.body.errors.forename[0].code).toBe(1128);
 
     const atLimit = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ ...validInline, forename: exactly64 });
     expect(atLimit.status).toBe(201);
@@ -147,7 +147,7 @@ describe('reports', () => {
 
   it('caps address1-5 at 64 characters and address.postcode at 8', async () => {
     const overLimitAddress = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({
         ...validInline,
@@ -157,7 +157,7 @@ describe('reports', () => {
     expect(overLimitAddress.body.errors['address.address1'][0].code).toBe(1131);
 
     const overLimitPostcode = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({
         ...validInline,
@@ -169,12 +169,12 @@ describe('reports', () => {
 
   it('rejects report_type_id combined with inline fields', async () => {
     const reportTypeRes = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-combo` });
 
     const res = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ report_type_id: reportTypeRes.body.data.id, forename: 'Bella' });
 
@@ -184,7 +184,7 @@ describe('reports', () => {
 
   it('rejects a nonexistent report_type_id', async () => {
     const res = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ report_type_id: '00000000-0000-0000-0000-000000000000' });
 
@@ -194,12 +194,12 @@ describe('reports', () => {
 
   it('completes immediately for a report type with no primary actions', async () => {
     const reportTypeRes = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-noactions`, primary_actions: [] });
 
     const res = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ report_type_id: reportTypeRes.body.data.id });
 
@@ -209,12 +209,12 @@ describe('reports', () => {
 
   it('completes immediately for a primary action needing no input beyond the subject (EPIC-7)', async () => {
     const reportTypeRes = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-autorun`, primary_actions: ['address-verification'] });
 
     const res = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ report_type_id: reportTypeRes.body.data.id });
 
@@ -226,12 +226,12 @@ describe('reports', () => {
 
   it('stays STARTED for a primary action needing input the create-report request never collects', async () => {
     const reportTypeRes = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-needsinput`, primary_actions: ['bank-account-validation'] });
 
     const res = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ report_type_id: reportTypeRes.body.data.id });
 
@@ -241,12 +241,12 @@ describe('reports', () => {
 
   it('rejects creating against a report type with reference_required and no reference', async () => {
     const reportTypeRes = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-refreq`, reference_required: true });
 
     const res = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ report_type_id: reportTypeRes.body.data.id });
 
@@ -256,13 +256,15 @@ describe('reports', () => {
 
   it('rejects creating against an inactive report type', async () => {
     const reportTypeRes = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-inactive` });
-    await request(app).delete(`/report-types/${reportTypeRes.body.data.id}`).set(authed());
+    await request(app)
+      .delete(`/lexis-nexis/report-types/${reportTypeRes.body.data.id}`)
+      .set(authed());
 
     const res = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ report_type_id: reportTypeRes.body.data.id });
 
@@ -271,7 +273,7 @@ describe('reports', () => {
 
   it('carries the report type scorecard onto the report and computes an assessment', async () => {
     const scorecardRes = await request(app)
-      .post('/scorecards')
+      .post('/lexis-nexis/scorecards')
       .set(authed())
       .send({
         name: `SC ${Date.now()}-assess`,
@@ -286,7 +288,7 @@ describe('reports', () => {
         ],
       });
     const reportTypeRes = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({
         name: `RT ${Date.now()}-scored`,
@@ -295,7 +297,7 @@ describe('reports', () => {
       });
 
     const res = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ report_type_id: reportTypeRes.body.data.id });
 
@@ -308,14 +310,19 @@ describe('reports', () => {
   });
 
   it('fetches a report by id and 404s for an unknown id', async () => {
-    const createRes = await request(app).post('/reports').set(authed()).send(validInline);
+    const createRes = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send(validInline);
 
-    const getRes = await request(app).get(`/reports/${createRes.body.data.id}`).set(authed());
+    const getRes = await request(app)
+      .get(`/lexis-nexis/reports/${createRes.body.data.id}`)
+      .set(authed());
     expect(getRes.status).toBe(200);
     expect(getRes.body.data.id).toBe(createRes.body.data.id);
 
     const notFoundRes = await request(app)
-      .get('/reports/00000000-0000-0000-0000-000000000000')
+      .get('/lexis-nexis/reports/00000000-0000-0000-0000-000000000000')
       .set(authed());
     expect(notFoundRes.status).toBe(404);
   });
@@ -323,11 +330,11 @@ describe('reports', () => {
   it('lists reports in the paginator envelope, filterable by surname', async () => {
     const surname = 'UniqueSurname';
     await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ ...validInline, surname });
 
-    const res = await request(app).get('/reports').query({ surname }).set(authed());
+    const res = await request(app).get('/lexis-nexis/reports').query({ surname }).set(authed());
 
     expect(res.status).toBe(200);
     expect(res.body.data.length).toBeGreaterThanOrEqual(1);
@@ -335,13 +342,16 @@ describe('reports', () => {
   });
 
   it('soft-deletes a report — subsequent GET 404s', async () => {
-    const createRes = await request(app).post('/reports').set(authed()).send(validInline);
+    const createRes = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send(validInline);
     const id = createRes.body.data.id;
 
-    const deleteRes = await request(app).delete(`/reports/${id}`).set(authed());
+    const deleteRes = await request(app).delete(`/lexis-nexis/reports/${id}`).set(authed());
     expect(deleteRes.status).toBe(204);
 
-    const getRes = await request(app).get(`/reports/${id}`).set(authed());
+    const getRes = await request(app).get(`/lexis-nexis/reports/${id}`).set(authed());
     expect(getRes.status).toBe(404);
   });
 
@@ -350,12 +360,15 @@ describe('reports', () => {
     // digits of the timestamp keeps this unique across runs while fitting.
     const postcode = `P${String(Date.now()).slice(-6)}`;
     const createRes = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ ...validInline, address: { address1: '1 Test Street', postcode } });
     expect(createRes.status).toBe(201);
 
-    const postcodeRes = await request(app).get('/reports').query({ postcode }).set(authed());
+    const postcodeRes = await request(app)
+      .get('/lexis-nexis/reports')
+      .query({ postcode })
+      .set(authed());
     expect(postcodeRes.status).toBe(200);
     expect(postcodeRes.body.data.length).toBeGreaterThanOrEqual(1);
     expect(
@@ -365,7 +378,7 @@ describe('reports', () => {
     const today = new Date().toISOString().slice(0, 10);
     const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
     const dateRangeRes = await request(app)
-      .get('/reports')
+      .get('/lexis-nexis/reports')
       .query({ postcode, date_from: today, date_to: tomorrow })
       .set(authed());
     expect(dateRangeRes.status).toBe(200);
@@ -375,33 +388,42 @@ describe('reports', () => {
 
     const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
     const outOfRangeRes = await request(app)
-      .get('/reports')
+      .get('/lexis-nexis/reports')
       .query({ postcode, date_from: yesterday, date_to: yesterday })
       .set(authed());
     expect(outOfRangeRes.body.data.length).toBe(0);
   });
 
   it('accepts uklexid as an integer but matches nothing (no lexid concept in this replica)', async () => {
-    await request(app).post('/reports').set(authed()).send(validInline);
+    await request(app).post('/lexis-nexis/reports').set(authed()).send(validInline);
 
-    const res = await request(app).get('/reports').query({ uklexid: '123' }).set(authed());
+    const res = await request(app)
+      .get('/lexis-nexis/reports')
+      .query({ uklexid: '123' })
+      .set(authed());
     expect(res.status).toBe(200);
     expect(res.body.data.length).toBe(0);
   });
 
   it('rejects a non-integer uklexid (422/1245)', async () => {
-    const res = await request(app).get('/reports').query({ uklexid: 'abc' }).set(authed());
+    const res = await request(app)
+      .get('/lexis-nexis/reports')
+      .query({ uklexid: 'abc' })
+      .set(authed());
     expect(res.status).toBe(422);
     expect(res.body.errors.uklexid[0].code).toBe(1245);
   });
 
   it('records audit log entries for create and delete', async () => {
-    const createRes = await request(app).post('/reports').set(authed()).send(validInline);
+    const createRes = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send(validInline);
     const id = createRes.body.data.id;
 
-    await request(app).delete(`/reports/${id}`).set(authed());
+    await request(app).delete(`/lexis-nexis/reports/${id}`).set(authed());
 
-    const auditRes = await request(app).get(`/reports/${id}/audit`).set(authed());
+    const auditRes = await request(app).get(`/lexis-nexis/reports/${id}/audit`).set(authed());
     expect(auditRes.status).toBe(200);
     expect(auditRes.body.data.map((e: { event_type: string }) => e.event_type)).toEqual([
       'CREATED',
@@ -410,10 +432,13 @@ describe('reports', () => {
   });
 
   it('returns submitted subject fields as input-data', async () => {
-    const createRes = await request(app).post('/reports').set(authed()).send(validInline);
+    const createRes = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send(validInline);
 
     const res = await request(app)
-      .get(`/reports/${createRes.body.data.id}/input-data`)
+      .get(`/lexis-nexis/reports/${createRes.body.data.id}/input-data`)
       .set(authed());
 
     expect(res.status).toBe(200);

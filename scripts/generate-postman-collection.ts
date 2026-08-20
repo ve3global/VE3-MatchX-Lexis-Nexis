@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { API_PREFIX } from '../src/lib/apiPrefix.js';
 
 /**
  * Generates docs/postman/LN-Replica.postman_collection.json from a
@@ -94,7 +95,9 @@ function saveScript(saves: Save[] | undefined): string[] {
 // request fail with "request url is empty" (see git history / live
 // testing notes) despite looking schema-valid.
 function buildUrl(path: string, query?: Record<string, string>): string {
-  const base = `{{base_url}}${path}`;
+  // /up is the one route not mounted under API_PREFIX (see lib/apiPrefix.ts).
+  const prefixedPath = path === '/up' ? path : `${API_PREFIX}${path}`;
+  const base = `{{base_url}}${prefixedPath}`;
   if (!query) return base;
   const qs = Object.entries(query)
     .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
