@@ -62,10 +62,11 @@ npx newman run docs/postman/LN-Replica.postman_collection.json \
   --folder "Run 3 - Validation Errors (Demo)"
 ```
 
-Live-validated in isolation on 2026-08-20: Run 1 (56/56 requests/assertions
-clean end-to-end), Run 2 (21/21, 10 succeed then 10 come back 429 exactly
-as designed), Run 3 (8/8 requests, 16/16 assertions, including the new
-malformed-name request).
+Each folder live-validated in isolation via Newman against `npm run dev`
+on 2026-08-20: Run 1 (8/8 requests, 11/11 assertions, clean end-to-end),
+Run 2 (21/21 requests, 31/31 assertions — 10 succeed then 10 come back
+429 exactly as designed), Run 3 (8/8 requests, 16/16 assertions, including
+the new malformed-name request).
 
 ### Per-epic folders (engineering reference)
 
