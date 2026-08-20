@@ -1,0 +1,77 @@
+name: Deploy Dev
+
+on:
+  push:
+    branches:
+      - main
+    tags-ignore:
+      - 'v*'
+
+jobs:
+  deploy-lexis-nexis:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_DEFAULT_REGION: ${{ secrets.DEV_AWS_DEFAULT_REGION  }}
+      AWS_ACCOUNT_ID: ${{ secrets.DEV_AWS_ACCOUNT_ID  }}
+      AWS_CLUSTER_NAME: ${{ secrets.DEV_AWS_CLUSTER_NAME  }}
+      IMAGE_REPO_NAME: ${{ secrets.LN_IMAGE_REPO_NAME  }}
+      DOCKERFILE: lexis-nexis/Dockerfile
+      NAMESPACE: deploy
+      DEPLOYMENT_NAME: matchx-lexis-nexis
+      CONTAINER_NAME: lexis-nexis
+
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        run: echo "IMAGE_TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.DEV_AWS_ACCESS_KEY_ID  }}
+          aws-secret-access-key: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY  }}
+          aws-region: ${{ secrets.DEV_AWS_DEFAULT_REGION }}
+
+      - name: Pre-Build
+        run: |
+          echo "Logging into Amazon ECR"
+          echo "$AWS_DEFAULT_REGION"
+          aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+          aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name $AWS_CLUSTER_NAME
+          echo "Verifying AWS identity"
+          aws sts get-caller-identity
+          echo "check config"
+          cat $HOME/.kube/config
+          echo "check kubectl access"
+          kubectl config current-context 
+          kubectl get svc
+          export REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
+          echo "REPOSITORY_URI=$REPOSITORY_URI" >> $GITHUB_ENV
+
+      - name: Build
+        run: |
+          echo "Building Docker image"
+          docker build --pull --no-cache -f $DOCKERFILE -t $IMAGE_REPO_NAME:$IMAGE_TAG .
+          docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $REPOSITORY_URI:$IMAGE_TAG
+
+
+      - name: Post-Build
+        run: |
+          echo "Pushing Docker image to ECR"
+          docker push $REPOSITORY_URI:$IMAGE_TAG
+          echo "Docker Push to ECR Repository Completed"
+          echo "Replacing IMAGE_TAG in manifests"
+          find lexis-nexis -type f -name "*.yaml" -exec sed -i "s|IMAGE_TAG|$IMAGE_TAG|g" {} +
+          echo "Verifying image tags"
+          grep -R "image:" lexis-nexis/
+          kubectl apply -f lexis-nexis/ingress.yaml -n $NAMESPACE
+          kubectl apply -f lexis-nexis/lexis-nexis.yaml -n $NAMESPACE
+          IMAGE=$REPOSITORY_URI:$IMAGE_TAG
+          kubectl set image deployment/$DEPLOYMENT_NAME \
+            $CONTAINER_NAME=$IMAGE -n $NAMESPACE
+          kubectl rollout status deployment/$DEPLOYMENT_NAME -n $NAMESPACE --timeout=5m
+  
