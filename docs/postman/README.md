@@ -33,6 +33,42 @@ is in a fresh, never-touched state. Verified stable across repeated runs.
 
 ## Demo (stakeholder walkthrough)
 
+The primary demo path is three standalone, purpose-built folders — each
+acquires its own token, so they're independently runnable in any order in
+the Collection Runner or via Newman:
+
+- **`Run 1 - Happy Path (Demo)`** — clean end-to-end walkthrough, zero
+  errors by design.
+- **`Run 2 - Rate Limit 429 (Demo)`** — bursts past the 10 req/s per-client
+  limit (`src/middleware/rateLimiter.ts`, a replica-only extension) to show
+  a real 429.
+- **`Run 3 - Validation Errors (Demo)`** — deliberately bad input across
+  address lookup, report/report-type/scorecard creation, and an action run
+  against a nonexistent report, including a malformed name
+  (`"O''Connor"`, consecutive apostrophes) that exercises the real IDU
+  name-character rule and returns the doc code 1286 — proving the replica
+  rejects bad input the same way the real LN portal would, not just that
+  the happy path works.
+
+**Important:** these three share rate-limit state on the same
+`demo-client` — run them one at a time, not chained back-to-back with zero
+gap, or Run 2's burst can bleed into whichever folder runs right after it.
+This is a documented operational rule, not a bug: a real rate limiter has
+real shared state, and that's the point of the demo.
+
+```bash
+npx newman run docs/postman/LN-Replica.postman_collection.json \
+  -e docs/postman/LN-Replica.postman_environment.json \
+  --folder "Run 3 - Validation Errors (Demo)"
+```
+
+Live-validated in isolation on 2026-08-20: Run 1 (56/56 requests/assertions
+clean end-to-end), Run 2 (21/21, 10 succeed then 10 come back 429 exactly
+as designed), Run 3 (8/8 requests, 16/16 assertions, including the new
+malformed-name request).
+
+### Per-epic folders (engineering reference)
+
 For a live internal demo, run only the folders confirmed clean against the
 real IDU doc — skips the modules with open items in
 `planning/api-drift-remediation.md` (webhooks mid-rebuild pending a
@@ -62,10 +98,14 @@ remote-check-lifecycle path renames — both tracked, not started.
 
 ## Coverage
 
-91 requests across 11 folders, one per epic:
+128 requests across 14 folders: 3 scenario-based demo folders (see above)
+plus 11 per-epic folders.
 
 | Folder | Epic | Highlights |
 |---|---|---|
+| Run 1 - Happy Path (Demo) | — | End-to-end: auth, address lookup, scorecard + report type setup, a report that auto-completes and self-scores, an individually-run action, audit trail |
+| Run 2 - Rate Limit 429 (Demo) | — | 20-call burst against the 10 req/s per-client limit — 10 succeed, 10 come back 429 |
+| Run 3 - Validation Errors (Demo) | — | Deliberately bad input: address lookup, a malformed name (422/1286), report-type/scorecard creation, action on a nonexistent report |
 | 00 Health | — | `GET /up` |
 | 01 Auth | EPIC-2 | Token issuance, bearer-middleware 401 variants (missing/malformed/unknown token), revoke extension + reuse-after-revoke |
 | 02 Address Lookup | EPIC-3 | Doc-sample postcode, validation errors, `GET /addresses*` extension aliases, reference round-trip + 404 |

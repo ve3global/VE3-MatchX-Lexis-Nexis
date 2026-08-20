@@ -932,6 +932,39 @@
           ]
         },
         {
+          "name": "POST /reports — malformed forename, consecutive apostrophes (422/1286)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/reports",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"forename\": \"O''Connor\",\n  \"surname\": \"Test\",\n  \"dob\": \"1980-01-01\",\n  \"address\": {\n    \"address1\": \"1 Test Street\",\n    \"postcode\": \"TE1 1ST\"\n  },\n  \"enduser_agreement\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('code 1286 on forename', () => pm.expect(pm.response.json().errors[\"forename\"][0].code).to.eql(1286));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "POST /report-types — nonexistent scorecard_id (422)",
           "request": {
             "method": "POST",

@@ -305,6 +305,19 @@ const FOLDERS: FolderSpec[] = [
         ],
       },
       {
+        name: 'POST /reports — malformed forename, consecutive apostrophes (422/1286)',
+        method: 'POST',
+        path: '/reports',
+        body: {
+          forename: "O''Connor",
+          surname: 'Test',
+          dob: '1980-01-01',
+          address: { address1: '1 Test Street', postcode: 'TE1 1ST' },
+          enduser_agreement: true,
+        },
+        tests: [statusTest(422), errorCodeTest('code 1286 on forename', 'forename', 1286)],
+      },
+      {
         name: 'POST /report-types — nonexistent scorecard_id (422)',
         method: 'POST',
         path: '/report-types',
