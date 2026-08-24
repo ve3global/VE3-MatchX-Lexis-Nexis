@@ -29,6 +29,10 @@ npm run dev
 The seed script prints a sample client's `client_id`/`client_secret` to the
 console — use those to obtain a bearer token from `POST /oauth/token`.
 
+On startup the server logs `Database connected` once Prisma has verified
+the `DATABASE_URL` connection, or `Database connection failed: ...` (and
+exits) if it can't reach the database.
+
 ## Scripts
 
 - `npm run dev` — start the API with hot reload
