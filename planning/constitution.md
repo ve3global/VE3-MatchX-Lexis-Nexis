@@ -107,6 +107,25 @@ Vitest + Supertest for integration tests.
   stack traces to the client.
 - Every request gets/echoes a correlation/request ID (`X-Request-Id`),
   logged server-side alongside any error.
+
+## Fault injection (replica-only extension)
+
+Categorically distinct from the determinism engine above (see `CONTEXT.md`):
+a QA override value forces a *business* outcome for one subject's data; fault
+injection forces the *transport-level response itself* to fail, for any
+request, regardless of body content.
+
+- Header `X-LN-Replica-Force-Status: 500|502|503|504` forces that exact
+  status back immediately, body `{message, correlationId, injected: true}`.
+  Any other value (absent, malformed, out of that set) is ignored — the
+  request proceeds normally. Fails open by design.
+- `FAULT_INJECTION_ENABLED` env var (default `true`) is a global kill switch;
+  `false` behaves like an invalid header value.
+- Checked before `auth` (`src/middleware/faultInjection.ts`, mounted first in
+  `app.ts`), so it applies to every route including `/up` and `/oauth/token`.
+  Trade-off: a forced fault never reaches `auth`, so it's never written to
+  `ActivityLog` and never counted by the rate limiter (both keyed off
+  `req.client`) — accepted in exchange for covering every route.
 - This error/validation shape is documented once here and reused identically
   across every epic/endpoint — no per-epic reinvention.
 

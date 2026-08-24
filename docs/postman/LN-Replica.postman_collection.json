@@ -3751,6 +3751,211 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Run 4 - Fault Injection (Demo)",
+      "description": "Forces the API to fail on demand via the X-LN-Replica-Force-Status header (src/middleware/faultInjection.ts) — a replica-only extension, not from the real doc (see README.md) — for testing a client's own error handling. Exercises each whitelisted code, the header working on an unauthenticated route mounted before auth (/up), and the fail-open behavior on an out-of-whitelist value. Standalone — acquires its own token.",
+      "item": [
+        {
+          "name": "POST /oauth/token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/lexis-nexis/oauth/token",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_id\": \"{{client_id}}\",\n  \"client_secret\": \"{{client_secret}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('access_token', pm.response.json()[\"access_token\"]);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — X-LN-Replica-Force-Status: 500",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "X-LN-Replica-Force-Status",
+                "value": "500"
+              }
+            ],
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 500', () => pm.response.to.have.status(500));",
+                  "pm.test('injected true', () => pm.expect(pm.response.json()[\"injected\"]).to.eql(true));",
+                  "pm.test('correlationId present', () => pm.expect(pm.response.json()[\"correlationId\"]).to.not.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — X-LN-Replica-Force-Status: 502",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "X-LN-Replica-Force-Status",
+                "value": "502"
+              }
+            ],
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 502', () => pm.response.to.have.status(502));",
+                  "pm.test('injected true', () => pm.expect(pm.response.json()[\"injected\"]).to.eql(true));",
+                  "pm.test('correlationId present', () => pm.expect(pm.response.json()[\"correlationId\"]).to.not.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — X-LN-Replica-Force-Status: 503",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "X-LN-Replica-Force-Status",
+                "value": "503"
+              }
+            ],
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 503', () => pm.response.to.have.status(503));",
+                  "pm.test('injected true', () => pm.expect(pm.response.json()[\"injected\"]).to.eql(true));",
+                  "pm.test('correlationId present', () => pm.expect(pm.response.json()[\"correlationId\"]).to.not.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /report-types — X-LN-Replica-Force-Status: 504",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "X-LN-Replica-Force-Status",
+                "value": "504"
+              }
+            ],
+            "url": "{{base_url}}/lexis-nexis/report-types?per_page=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 504', () => pm.response.to.have.status(504));",
+                  "pm.test('injected true', () => pm.expect(pm.response.json()[\"injected\"]).to.eql(true));",
+                  "pm.test('correlationId present', () => pm.expect(pm.response.json()[\"correlationId\"]).to.not.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /up — forced 503, applies before auth",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-LN-Replica-Force-Status",
+                "value": "503"
+              }
+            ],
+            "url": "{{base_url}}/up"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 503', () => pm.response.to.have.status(503));",
+                  "pm.test('injected true', () => pm.expect(pm.response.json()[\"injected\"]).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /up — out-of-whitelist value ignored (fail open)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-LN-Replica-Force-Status",
+                "value": "404"
+              }
+            ],
+            "url": "{{base_url}}/up"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('not injected', () => pm.expect(pm.response.json().injected).to.be.undefined);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

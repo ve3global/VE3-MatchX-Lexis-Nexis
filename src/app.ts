@@ -4,6 +4,7 @@ import { activityLog } from './middleware/activityLog.js';
 import { auth } from './middleware/auth.js';
 import { correlationId } from './middleware/correlationId.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { faultInjection } from './middleware/faultInjection.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
 import { addressLookupRouter } from './modules/addressLookup/routes.js';
 import { authRouter } from './modules/auth/routes.js';
@@ -20,6 +21,7 @@ export function createApp(): Express {
 
   app.use(express.json());
   app.use(correlationId);
+  app.use(faultInjection);
 
   // The one deliberate exception to API_PREFIX — k8s readiness/liveness
   // probes hit this directly on the pod, bypassing the ingress that

@@ -52,16 +52,20 @@ exits) if it can't reach the database.
 
 Two complementary layers:
 
-- **`npm test`** — the Vitest + Supertest integration suite (128 tests),
+- **`npm test`** — the Vitest + Supertest integration suite (153 tests),
   run in-process against the Express app directly (no real network).
-- **`docs/postman/`** — a full Postman collection (87 requests across
+- **`docs/postman/`** — a full Postman collection (135 requests across
   every epic, phase 1 and phase 2), runnable interactively or headless via
   [Newman](https://github.com/postmanlabs/newman) against a real running
   instance (`npm run dev`) — exercises the actual HTTP/JSON layer the
   in-process suite doesn't touch. See
   [docs/postman/README.md](docs/postman/README.md) for coverage details
-  and the bugs this live-testing pass caught. Both layers currently pass
-  in full (128/128 and 87/87 respectively).
+  and the bugs this live-testing pass caught. The Vitest suite passes in
+  full (153/153); the Postman collection passes cleanly per folder (each
+  folder validated individually via Newman) — running the entire
+  collection unfiltered in one go triggers real, shared rate-limit state
+  across folders by design (see `docs/postman/README.md`), so that's not
+  a supported invocation.
 
 ## QA override values
 
@@ -106,6 +110,19 @@ claiming doc parity. Currently:
   describes a company resource's own fields at all (only `company_id` as
   a foreign key elsewhere), so this is closer to invented than any other
   phase-2 sub-resource
+- **Fault injection**: sending `X-LN-Replica-Force-Status: 500|502|503|504`
+  on any request forces that status back immediately, with
+  `{message, correlationId, injected: true}` — lets a client integrating
+  against this replica test its own error handling without waiting for a
+  real outage. Any other header value (missing, malformed, out of that
+  set) is ignored and the request proceeds normally. Applies to literally
+  every route, including `/up` and `/oauth/token`, since the check runs
+  before `auth` — as a result, a forced fault never reaches `auth`, so it's
+  never written to `ActivityLog` and never counted by the rate limiter
+  (both keyed off `req.client`, which only `auth` sets). A global env var,
+  `FAULT_INJECTION_ENABLED` (default `true`), disables the whole feature
+  without a code change if ever needed. See `Run 4 - Fault Injection
+  (Demo)` in the Postman collection for a live demonstration.
 
 Each is called out in its owning epic's `spec.md` under "Resolved
 conflicts".

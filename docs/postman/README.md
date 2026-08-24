@@ -21,7 +21,10 @@ yourself or every path doubles up.
 ingress only routes `/lexis-nexis/*` to the service (see
 `lexis-nexis/ingress.yaml`), and the app deliberately mounts health
 outside that prefix (readiness/liveness probes hit the pod directly,
-bypassing the ingress). The "00 - Health" folder is Local-only.
+bypassing the ingress). The "00 - Health" folder is Local-only, and so
+are the two `GET /up` requests inside "Run 4 - Fault Injection (Demo)"
+(they exist specifically to prove the fault-injection header works on a
+route mounted before `auth`, which `/up` is the only example of).
 
 The Live environment's `client_id`/`client_secret` are left blank —
 the deployed container doesn't auto-seed a demo client on boot (see
@@ -54,7 +57,7 @@ is in a fresh, never-touched state. Verified stable across repeated runs.
 
 ## Demo (stakeholder walkthrough)
 
-The primary demo path is three standalone, purpose-built folders — each
+The primary demo path is four standalone, purpose-built folders — each
 acquires its own token, so they're independently runnable in any order in
 the Collection Runner or via Newman:
 
@@ -70,24 +73,34 @@ the Collection Runner or via Newman:
   name-character rule and returns the doc code 1286 — proving the replica
   rejects bad input the same way the real LN portal would, not just that
   the happy path works.
+- **`Run 4 - Fault Injection (Demo)`** — forces the API to fail on demand
+  via the `X-LN-Replica-Force-Status` header
+  (`src/middleware/faultInjection.ts`, a replica-only extension): one call
+  per whitelisted code (500/502/503/504), one call proving the header
+  works on `GET /up` (mounted before `auth`, so unauthenticated routes are
+  covered too — Local-only, see the note above), and one call with an
+  out-of-whitelist value proving the fail-open behavior.
 
-**Important:** these three share rate-limit state on the same
+**Important:** these four share rate-limit state on the same
 `demo-client` — run them one at a time, not chained back-to-back with zero
 gap, or Run 2's burst can bleed into whichever folder runs right after it.
 This is a documented operational rule, not a bug: a real rate limiter has
-real shared state, and that's the point of the demo.
+real shared state, and that's the point of the demo. (Run 4 itself makes
+only 7 requests, well under the per-second limit, so it never triggers its
+own burst — the risk is only ever inherited from a Run 2 that just ran.)
 
 ```bash
 npx newman run docs/postman/LN-Replica.postman_collection.json \
   -e docs/postman/LN-Replica.postman_environment.json \
-  --folder "Run 3 - Validation Errors (Demo)"
+  --folder "Run 4 - Fault Injection (Demo)"
 ```
 
-Each folder live-validated in isolation via Newman against `npm run dev`
-on 2026-08-20: Run 1 (8/8 requests, 11/11 assertions, clean end-to-end),
-Run 2 (21/21 requests, 31/31 assertions — 10 succeed then 10 come back
-429 exactly as designed), Run 3 (8/8 requests, 16/16 assertions, including
-the new malformed-name request).
+Each folder live-validated in isolation via Newman against `npm run dev`:
+Run 1 (8/8 requests, 11/11 assertions, clean end-to-end), Run 2 (21/21
+requests, 31/31 assertions — 10 succeed then 10 come back 429 exactly as
+designed), Run 3 (8/8 requests, 16/16 assertions, including the malformed-
+name request) — all on 2026-08-20; Run 4 (7/7 requests, 17/17 assertions)
+on 2026-08-24.
 
 ### Per-epic folders (engineering reference)
 
