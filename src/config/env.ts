@@ -9,5 +9,4 @@ function required(name: string): string {
 export const env = {
   port: Number(process.env.PORT ?? 3000),
   databaseUrl: required('DATABASE_URL'),
-  faultInjectionEnabled: process.env.FAULT_INJECTION_ENABLED !== 'false',
 };

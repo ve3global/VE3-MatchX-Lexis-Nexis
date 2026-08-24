@@ -1,5 +1,4 @@
 import type { NextFunction, Request, Response } from 'express';
-import { env } from '../config/env.js';
 
 const HEADER = 'x-ln-replica-force-status';
 
@@ -28,7 +27,12 @@ const MESSAGES: Record<number, string> = {
 };
 
 export function faultInjection(req: Request, res: Response, next: NextFunction): void {
-  if (!env.faultInjectionEnabled) {
+  // Reads process.env directly rather than importing the shared `env`
+  // config object: that object eagerly requires DATABASE_URL at import
+  // time, and this middleware sits in app.ts's import graph, which the
+  // no-DB-needed doc-parity test (tests/integration/doc-parity.test.ts)
+  // imports without ever setting DATABASE_URL.
+  if (process.env.FAULT_INJECTION_ENABLED === 'false') {
     next();
     return;
   }
