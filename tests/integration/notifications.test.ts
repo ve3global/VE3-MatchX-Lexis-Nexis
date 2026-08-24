@@ -11,7 +11,7 @@ describe('notifications', () => {
 
   beforeAll(async () => {
     const res = await request(app)
-      .post('/oauth/token')
+      .post('/lexis-nexis/oauth/token')
       .send({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET });
     token = res.body.access_token;
   });
@@ -21,12 +21,12 @@ describe('notifications', () => {
   }
 
   it('rejects an unauthenticated request', async () => {
-    const res = await request(app).get('/notifications');
+    const res = await request(app).get('/lexis-nexis/notifications');
     expect(res.status).toBe(401);
   });
 
   it('lists notifications in the paginator envelope', async () => {
-    const res = await request(app).get('/notifications').set(authed());
+    const res = await request(app).get('/lexis-nexis/notifications').set(authed());
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('data');
     expect(res.body).toHaveProperty('links');
@@ -34,53 +34,65 @@ describe('notifications', () => {
   });
 
   it('rejects a malformed PATCH body', async () => {
-    const listRes = await request(app).get('/notifications').set(authed());
+    const listRes = await request(app).get('/lexis-nexis/notifications').set(authed());
     const anyId = listRes.body.data[0]?.id ?? '00000000-0000-0000-0000-000000000000';
 
-    const res = await request(app).patch(`/notifications/${anyId}`).set(authed()).send({});
+    const res = await request(app)
+      .patch(`/lexis-nexis/notifications/${anyId}`)
+      .set(authed())
+      .send({});
     expect(res.status).toBe(422);
     expect(res.body.errors.read[0].code).toBe(1281);
   });
 
   it('creates exactly one notification when a report type with no primary actions completes, and none on re-fetch', async () => {
     const reportTypeRes = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-notif`, primary_actions: [] });
 
-    const before = await request(app).get('/notifications').set(authed()).query({ per_page: 1 });
+    const before = await request(app)
+      .get('/lexis-nexis/notifications')
+      .set(authed())
+      .query({ per_page: 1 });
     const totalBefore = before.body.meta.total;
 
     const createRes = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ report_type_id: reportTypeRes.body.data.id });
     expect(createRes.body.data.status).toBe('COMPLETE');
 
-    await request(app).get(`/reports/${createRes.body.data.id}`).set(authed());
-    await request(app).get(`/reports/${createRes.body.data.id}`).set(authed());
+    await request(app).get(`/lexis-nexis/reports/${createRes.body.data.id}`).set(authed());
+    await request(app).get(`/lexis-nexis/reports/${createRes.body.data.id}`).set(authed());
 
-    const after = await request(app).get('/notifications').set(authed()).query({ per_page: 1 });
+    const after = await request(app)
+      .get('/lexis-nexis/notifications')
+      .set(authed())
+      .query({ per_page: 1 });
     expect(after.body.meta.total).toBe(totalBefore + 1);
   });
 
   it('creates a notification when a report completes via an individually-run action, marks it read', async () => {
     const reportTypeRes = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-notifmanual`, primary_actions: ['bank-account-validation'] });
     const createRes = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ report_type_id: reportTypeRes.body.data.id });
     expect(createRes.body.data.status).toBe('STARTED');
 
     await request(app)
-      .post(`/reports/${createRes.body.data.id}/actions/bank-account-validation`)
+      .post(`/lexis-nexis/reports/${createRes.body.data.id}/actions/bank-account-validation`)
       .set(authed())
       .send({ bank_details: { sort_code: '123456', account_number: '12345678' } });
 
-    const listRes = await request(app).get('/notifications').set(authed()).query({ read: 'false' });
+    const listRes = await request(app)
+      .get('/lexis-nexis/notifications')
+      .set(authed())
+      .query({ read: 'false' });
     const notification = listRes.body.data.find((n: { message: string }) =>
       n.message.includes(createRes.body.data.id),
     );
@@ -88,7 +100,7 @@ describe('notifications', () => {
     expect(notification.read).toBe(false);
 
     const patchRes = await request(app)
-      .patch(`/notifications/${notification.id}`)
+      .patch(`/lexis-nexis/notifications/${notification.id}`)
       .set(authed())
       .send({ read: true });
     expect(patchRes.status).toBe(200);

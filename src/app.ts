@@ -1,8 +1,10 @@
-import express, { type Express } from 'express';
+import express, { Router, type Express } from 'express';
+import { API_PREFIX } from './lib/apiPrefix.js';
 import { activityLog } from './middleware/activityLog.js';
 import { auth } from './middleware/auth.js';
 import { correlationId } from './middleware/correlationId.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { faultInjection } from './middleware/faultInjection.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
 import { addressLookupRouter } from './modules/addressLookup/routes.js';
 import { authRouter } from './modules/auth/routes.js';
@@ -19,23 +21,32 @@ export function createApp(): Express {
 
   app.use(express.json());
   app.use(correlationId);
+  app.use(faultInjection);
+
+  // The one deliberate exception to API_PREFIX — k8s readiness/liveness
+  // probes hit this directly on the pod, bypassing the ingress that
+  // otherwise requires the prefix (see lib/apiPrefix.ts).
+  app.use(healthRouter);
+
+  const api = Router();
 
   // Unauthenticated routes — must be registered before the global auth
   // middleware below (LN8: exempt from bearer auth).
-  app.use(healthRouter);
-  app.use(authRouter);
+  api.use(authRouter);
 
-  app.use(auth);
-  app.use(activityLog);
-  app.use(rateLimiter);
+  api.use(auth);
+  api.use(activityLog);
+  api.use(rateLimiter);
 
-  app.use(addressLookupRouter);
-  app.use(reportTypesRouter);
-  app.use(scorecardsRouter);
-  app.use(reportsRouter);
-  app.use(notificationsRouter);
-  app.use(webhooksRouter);
-  app.use(usersRouter);
+  api.use(addressLookupRouter);
+  api.use(reportTypesRouter);
+  api.use(scorecardsRouter);
+  api.use(reportsRouter);
+  api.use(notificationsRouter);
+  api.use(webhooksRouter);
+  api.use(usersRouter);
+
+  app.use(API_PREFIX, api);
 
   app.use(errorHandler);
 

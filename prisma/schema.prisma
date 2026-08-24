@@ -309,6 +309,19 @@ model UserOptions {
   @@map("user_options")
 }
 
+// Backs the shared rate-limit counter store (src/middleware/rateLimitStore.ts).
+// Lives in the shared DB rather than in-process memory so the fixed-window
+// count is correct across all pods behind the EKS HPA — see planning notes
+// on the rate-limiter cross-pod bug.
+model RateLimitCounter {
+  key       String   @id @map("client_key")
+  count     Int      @default(0)
+  prevCount Int      @default(0) @map("prev_count")
+  resetAt   DateTime @map("reset_at")
+
+  @@map("rate_limit_counters")
+}
+
 model ActivityLog {
   id             String   @id @default(uuid())
   clientId       String   @map("client_id")

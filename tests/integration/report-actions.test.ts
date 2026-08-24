@@ -13,7 +13,7 @@ describe('report actions', () => {
 
   beforeAll(async () => {
     const res = await request(app)
-      .post('/oauth/token')
+      .post('/lexis-nexis/oauth/token')
       .send({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET });
     token = res.body.access_token;
   });
@@ -24,7 +24,7 @@ describe('report actions', () => {
 
   async function createInlineReport() {
     const res = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({
         forename: 'Bella',
@@ -49,14 +49,14 @@ describe('report actions', () => {
 
   it('rejects an unauthenticated request', async () => {
     const id = await createInlineReport();
-    const res = await request(app).post(`/reports/${id}/actions/dob-verification`);
+    const res = await request(app).post(`/lexis-nexis/reports/${id}/actions/dob-verification`);
     expect(res.status).toBe(401);
   });
 
   it('404s for an unknown action name', async () => {
     const id = await createInlineReport();
     const res = await request(app)
-      .post(`/reports/${id}/actions/not-a-real-action`)
+      .post(`/lexis-nexis/reports/${id}/actions/not-a-real-action`)
       .set(authed())
       .send({});
     expect(res.status).toBe(404);
@@ -66,13 +66,13 @@ describe('report actions', () => {
     const id = await createInlineReport();
 
     const runRes = await request(app)
-      .post(`/reports/${id}/actions/dob-verification`)
+      .post(`/lexis-nexis/reports/${id}/actions/dob-verification`)
       .set(authed())
       .send({});
     expect(runRes.status).toBe(200);
     expect(runRes.body.data['dob-verification']).toHaveProperty('dob_verified');
 
-    const getRes = await request(app).get(`/reports/${id}`).set(authed());
+    const getRes = await request(app).get(`/lexis-nexis/reports/${id}`).set(authed());
     expect(getRes.body.data['dob-verification']).toEqual(runRes.body.data['dob-verification']);
     expect(getRes.body.data.attributes).toMatchObject(runRes.body.data['dob-verification']);
   });
@@ -82,11 +82,11 @@ describe('report actions', () => {
     const id2 = await createInlineReport();
 
     const res1 = await request(app)
-      .post(`/reports/${id1}/actions/address-verification`)
+      .post(`/lexis-nexis/reports/${id1}/actions/address-verification`)
       .set(authed())
       .send({});
     const res2 = await request(app)
-      .post(`/reports/${id2}/actions/address-verification`)
+      .post(`/lexis-nexis/reports/${id2}/actions/address-verification`)
       .set(authed())
       .send({});
 
@@ -96,7 +96,7 @@ describe('report actions', () => {
   it('rejects a malformed request body with the action-specific error code', async () => {
     const id = await createInlineReport();
     const res = await request(app)
-      .post(`/reports/${id}/actions/ni-number-validation`)
+      .post(`/lexis-nexis/reports/${id}/actions/ni-number-validation`)
       .set(authed())
       .send({});
 
@@ -108,7 +108,7 @@ describe('report actions', () => {
     const id = await createInlineReport();
 
     const badRes = await request(app)
-      .post(`/reports/${id}/actions/bank-account-validation`)
+      .post(`/lexis-nexis/reports/${id}/actions/bank-account-validation`)
       .set(authed())
       .send({ bank_details: { sort_code: 'abc', account_number: '123' } });
     expect(badRes.status).toBe(422);
@@ -116,7 +116,7 @@ describe('report actions', () => {
     expect(badRes.body.errors['bank_details.account_number'][0].code).toBe(1098);
 
     const goodRes = await request(app)
-      .post(`/reports/${id}/actions/bank-account-validation`)
+      .post(`/lexis-nexis/reports/${id}/actions/bank-account-validation`)
       .set(authed())
       .send({ bank_details: { sort_code: '123456', account_number: '12345678' } });
     expect(goodRes.status).toBe(200);
@@ -126,15 +126,15 @@ describe('report actions', () => {
   it('masks bank account number and NI number on input-data', async () => {
     const id = await createInlineReport();
     await request(app)
-      .post(`/reports/${id}/actions/bank-account-validation`)
+      .post(`/lexis-nexis/reports/${id}/actions/bank-account-validation`)
       .set(authed())
       .send({ bank_details: { sort_code: '123456', account_number: '12345678' } });
     await request(app)
-      .post(`/reports/${id}/actions/ni-number-validation`)
+      .post(`/lexis-nexis/reports/${id}/actions/ni-number-validation`)
       .set(authed())
       .send({ ni_number: 'AB123456C' });
 
-    const res = await request(app).get(`/reports/${id}/input-data`).set(authed());
+    const res = await request(app).get(`/lexis-nexis/reports/${id}/input-data`).set(authed());
 
     expect(res.body.data.bank_details).toEqual({ sort_code: '123456', account_number: '****5678' });
     expect(res.body.data.ni_number).toBe('AB******C');
@@ -144,14 +144,14 @@ describe('report actions', () => {
     const id = await createInlineReport();
 
     const missingRes = await request(app)
-      .post(`/reports/${id}/actions/otp-email-verification`)
+      .post(`/lexis-nexis/reports/${id}/actions/otp-email-verification`)
       .set(authed())
       .send({ code: '123456' });
     expect(missingRes.status).toBe(422);
     expect(missingRes.body.errors.code[0].code).toBe(1294);
 
     const sendRes = await request(app)
-      .post(`/reports/${id}/actions/otp-email`)
+      .post(`/lexis-nexis/reports/${id}/actions/otp-email`)
       .set(authed())
       .send({ email: 'test@example.com' });
     expect(sendRes.status).toBe(200);
@@ -159,14 +159,14 @@ describe('report actions', () => {
     expect(otpCode).toMatch(/^\d{6}$/);
 
     const wrongRes = await request(app)
-      .post(`/reports/${id}/actions/otp-email-verification`)
+      .post(`/lexis-nexis/reports/${id}/actions/otp-email-verification`)
       .set(authed())
       .send({ code: '000000' });
     expect(wrongRes.status).toBe(200);
     expect(wrongRes.body.data['otp-email-verification'].otp_email_verified).toBe(false);
 
     const verifyRes = await request(app)
-      .post(`/reports/${id}/actions/otp-email-verification`)
+      .post(`/lexis-nexis/reports/${id}/actions/otp-email-verification`)
       .set(authed())
       .send({ code: otpCode });
     expect(verifyRes.status).toBe(200);
@@ -175,43 +175,51 @@ describe('report actions', () => {
 
   it('re-running an action upserts rather than duplicating', async () => {
     const id = await createInlineReport();
-    await request(app).post(`/reports/${id}/actions/dob-verification`).set(authed()).send({});
-    await request(app).post(`/reports/${id}/actions/dob-verification`).set(authed()).send({});
+    await request(app)
+      .post(`/lexis-nexis/reports/${id}/actions/dob-verification`)
+      .set(authed())
+      .send({});
+    await request(app)
+      .post(`/lexis-nexis/reports/${id}/actions/dob-verification`)
+      .set(authed())
+      .send({});
 
-    const auditRes = await request(app).get(`/reports/${id}/audit`).set(authed());
+    const auditRes = await request(app).get(`/lexis-nexis/reports/${id}/audit`).set(authed());
     const actionRunEvents = auditRes.body.data.filter(
       (e: { event_type: string }) => e.event_type === 'ACTION_RUN',
     );
     expect(actionRunEvents.length).toBe(2);
 
-    const getRes = await request(app).get(`/reports/${id}`).set(authed());
+    const getRes = await request(app).get(`/lexis-nexis/reports/${id}`).set(authed());
     expect(Object.keys(getRes.body.data.attributes).sort()).toEqual(['dob_count', 'dob_verified']);
   });
 
   it('recomputes report status to COMPLETE once every primary action has run individually', async () => {
     const reportTypeRes = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-manual`, primary_actions: ['bank-account-validation'] });
     const createRes = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ report_type_id: reportTypeRes.body.data.id });
     expect(createRes.body.data.status).toBe('STARTED');
 
     const runRes = await request(app)
-      .post(`/reports/${createRes.body.data.id}/actions/bank-account-validation`)
+      .post(`/lexis-nexis/reports/${createRes.body.data.id}/actions/bank-account-validation`)
       .set(authed())
       .send({ bank_details: { sort_code: '123456', account_number: '12345678' } });
     expect(runRes.status).toBe(200);
 
-    const getRes = await request(app).get(`/reports/${createRes.body.data.id}`).set(authed());
+    const getRes = await request(app)
+      .get(`/lexis-nexis/reports/${createRes.body.data.id}`)
+      .set(authed());
     expect(getRes.body.data.status).toBe('COMPLETE');
   });
 
   it('QA override: surname SANCTIONED forces sanction:true', async () => {
     const createRes = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({
         forename: 'Test',
@@ -222,7 +230,7 @@ describe('report actions', () => {
       });
 
     const res = await request(app)
-      .post(`/reports/${createRes.body.data.id}/actions/sanction-screening`)
+      .post(`/lexis-nexis/reports/${createRes.body.data.id}/actions/sanction-screening`)
       .set(authed())
       .send({});
     expect(res.body.data['sanction-screening'].sanction).toBe(true);
@@ -230,7 +238,7 @@ describe('report actions', () => {
 
   it('QA override: dob 1900-01-01 forces all death-screening flags true', async () => {
     const createRes = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({
         forename: 'Test',
@@ -241,7 +249,7 @@ describe('report actions', () => {
       });
 
     const res = await request(app)
-      .post(`/reports/${createRes.body.data.id}/actions/death-screening`)
+      .post(`/lexis-nexis/reports/${createRes.body.data.id}/actions/death-screening`)
       .set(authed())
       .send({});
     expect(res.body.data['death-screening']).toEqual({
@@ -253,7 +261,7 @@ describe('report actions', () => {
 
   it('computes an assessment from action-produced attributes on GET', async () => {
     const scorecardRes = await request(app)
-      .post('/scorecards')
+      .post('/lexis-nexis/scorecards')
       .set(authed())
       .send({
         name: `SC ${Date.now()}-actions`,
@@ -268,7 +276,7 @@ describe('report actions', () => {
         ],
       });
     const reportTypeRes = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({
         name: `RT ${Date.now()}-actions`,
@@ -276,17 +284,19 @@ describe('report actions', () => {
         primary_actions: [],
       });
     const createRes = await request(app)
-      .post('/reports')
+      .post('/lexis-nexis/reports')
       .set(authed())
       .send({ report_type_id: reportTypeRes.body.data.id });
 
     const runRes = await request(app)
-      .post(`/reports/${createRes.body.data.id}/actions/sanction-screening`)
+      .post(`/lexis-nexis/reports/${createRes.body.data.id}/actions/sanction-screening`)
       .set(authed())
       .send({});
     const sanction = runRes.body.data['sanction-screening'].sanction as boolean;
 
-    const getRes = await request(app).get(`/reports/${createRes.body.data.id}`).set(authed());
+    const getRes = await request(app)
+      .get(`/lexis-nexis/reports/${createRes.body.data.id}`)
+      .set(authed());
     const expectedScore = sanction ? -100 : 20;
     expect(getRes.body.data.assessment.score).toBe(expectedScore);
     expect(getRes.body.data.assessment.result).toBe(sanction ? 'FAIL' : 'PASS');

@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { API_PREFIX } from '../src/lib/apiPrefix.js';
 
 /**
  * Generates docs/postman/LN-Replica.postman_collection.json from a
@@ -30,6 +31,8 @@ interface RequestSpec {
   auth?: boolean;
   /** Literal Authorization header value to send instead of the default `Bearer {{access_token}}` — e.g. to test a malformed scheme. */
   authHeaderValue?: string;
+  /** Additional literal headers to send, e.g. the fault-injection trigger. */
+  headers?: Record<string, string>;
   tests?: string[];
   saves?: Save[];
 }
@@ -94,7 +97,9 @@ function saveScript(saves: Save[] | undefined): string[] {
 // request fail with "request url is empty" (see git history / live
 // testing notes) despite looking schema-valid.
 function buildUrl(path: string, query?: Record<string, string>): string {
-  const base = `{{base_url}}${path}`;
+  // /up is the one route not mounted under API_PREFIX (see lib/apiPrefix.ts).
+  const prefixedPath = path === '/up' ? path : `${API_PREFIX}${path}`;
+  const base = `{{base_url}}${prefixedPath}`;
   if (!query) return base;
   const qs = Object.entries(query)
     .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
@@ -111,6 +116,9 @@ function buildItem(spec: RequestSpec): object {
     headers.push({ key: 'Authorization', value: spec.authHeaderValue });
   } else if (spec.auth !== false) {
     headers.push({ key: 'Authorization', value: 'Bearer {{access_token}}' });
+  }
+  for (const [key, value] of Object.entries(spec.headers ?? {})) {
+    headers.push({ key, value });
   }
 
   const exec = [...(spec.tests ?? []), ...saveScript(spec.saves)];
@@ -1243,6 +1251,54 @@ const FOLDERS: FolderSpec[] = [
         path: '/users/activity-logs',
         query: { status: '422' },
         tests: [statusTest(200), fieldDefinedTest('meta present', 'meta')],
+      },
+    ],
+  },
+
+  {
+    name: 'Run 4 - Fault Injection (Demo)',
+    description:
+      "Forces the API to fail on demand via the X-LN-Replica-Force-Status header (src/middleware/faultInjection.ts) — a replica-only extension, not from the real doc (see README.md) — for testing a client's own error handling. Exercises each whitelisted code, the header working on an unauthenticated route mounted before auth (/up), and the fail-open behavior on an out-of-whitelist value. Standalone — acquires its own token.",
+    items: [
+      {
+        name: 'POST /oauth/token',
+        method: 'POST',
+        path: '/oauth/token',
+        auth: false,
+        body: { client_id: '{{client_id}}', client_secret: '{{client_secret}}' },
+        tests: [statusTest(200)],
+        saves: [{ as: 'access_token', from: 'access_token' }],
+      },
+      ...[500, 502, 503, 504].map((status): RequestSpec => ({
+        name: `GET /report-types — X-LN-Replica-Force-Status: ${status}`,
+        method: 'GET',
+        path: '/report-types',
+        query: { per_page: '1' },
+        headers: { 'X-LN-Replica-Force-Status': String(status) },
+        tests: [
+          statusTest(status),
+          fieldEqualsTest('injected true', 'injected', true),
+          fieldDefinedTest('correlationId present', 'correlationId'),
+        ],
+      })),
+      {
+        name: 'GET /up — forced 503, applies before auth',
+        method: 'GET',
+        path: '/up',
+        auth: false,
+        headers: { 'X-LN-Replica-Force-Status': '503' },
+        tests: [statusTest(503), fieldEqualsTest('injected true', 'injected', true)],
+      },
+      {
+        name: 'GET /up — out-of-whitelist value ignored (fail open)',
+        method: 'GET',
+        path: '/up',
+        auth: false,
+        headers: { 'X-LN-Replica-Force-Status': '404' },
+        tests: [
+          statusTest(200),
+          "pm.test('not injected', () => pm.expect(pm.response.json().injected).to.be.undefined);",
+        ],
       },
     ],
   },

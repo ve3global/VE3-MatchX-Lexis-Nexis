@@ -13,7 +13,7 @@ describe('report types', () => {
 
   beforeAll(async () => {
     const res = await request(app)
-      .post('/oauth/token')
+      .post('/lexis-nexis/oauth/token')
       .send({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET });
     token = res.body.access_token;
 
@@ -26,13 +26,13 @@ describe('report types', () => {
   }
 
   it('rejects an unauthenticated request', async () => {
-    const res = await request(app).get('/report-types');
+    const res = await request(app).get('/lexis-nexis/report-types');
     expect(res.status).toBe(401);
   });
 
   it('creates a report type and returns it active', async () => {
     const res = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-a`, primary_actions: ['address-verification'] });
 
@@ -43,9 +43,9 @@ describe('report types', () => {
 
   it('rejects a duplicate name for the same client', async () => {
     const name = `RT ${Date.now()}-dup`;
-    await request(app).post('/report-types').set(authed()).send({ name });
+    await request(app).post('/lexis-nexis/report-types').set(authed()).send({ name });
 
-    const res = await request(app).post('/report-types').set(authed()).send({ name });
+    const res = await request(app).post('/lexis-nexis/report-types').set(authed()).send({ name });
 
     expect(res.status).toBe(422);
     expect(res.body.errors.name[0].code).toBe(1327);
@@ -53,7 +53,7 @@ describe('report types', () => {
 
   it('rejects an unknown report action name', async () => {
     const res = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-badaction`, primary_actions: ['not-a-real-action'] });
 
@@ -63,7 +63,7 @@ describe('report types', () => {
 
   it('rejects a duplicate action within the same list', async () => {
     const res = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({
         name: `RT ${Date.now()}-dupaction`,
@@ -76,7 +76,7 @@ describe('report types', () => {
 
   it('rejects an action that appears in both primary and secondary lists', async () => {
     const res = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({
         name: `RT ${Date.now()}-overlap`,
@@ -91,7 +91,7 @@ describe('report types', () => {
 
   it('rejects a scorecard_id that does not exist', async () => {
     const res = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({
         name: `RT ${Date.now()}-badscorecard`,
@@ -106,7 +106,7 @@ describe('report types', () => {
     const scorecard = await prisma.scorecard.findFirstOrThrow({ where: { clientId } });
 
     const res = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-goodscorecard`, scorecard_id: scorecard.id });
 
@@ -115,7 +115,7 @@ describe('report types', () => {
   });
 
   it('lists report types in the paginator envelope', async () => {
-    const res = await request(app).get('/report-types').set(authed());
+    const res = await request(app).get('/lexis-nexis/report-types').set(authed());
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('data');
@@ -127,7 +127,7 @@ describe('report types', () => {
 
   it('404s fetching an unknown report type id', async () => {
     const res = await request(app)
-      .get('/report-types/00000000-0000-0000-0000-000000000000')
+      .get('/lexis-nexis/report-types/00000000-0000-0000-0000-000000000000')
       .set(authed());
 
     expect(res.status).toBe(404);
@@ -135,13 +135,13 @@ describe('report types', () => {
 
   it('partially updates a report type, leaving other fields untouched', async () => {
     const createRes = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-patch`, description: 'original', category: 'kyc' });
     const id = createRes.body.data.id;
 
     const patchRes = await request(app)
-      .patch(`/report-types/${id}`)
+      .patch(`/lexis-nexis/report-types/${id}`)
       .set(authed())
       .send({ description: 'updated' });
 
@@ -153,40 +153,45 @@ describe('report types', () => {
 
   it('deactivates and reactivates a report type', async () => {
     const createRes = await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-lifecycle` });
     const id = createRes.body.data.id;
 
-    const deleteRes = await request(app).delete(`/report-types/${id}`).set(authed());
+    const deleteRes = await request(app).delete(`/lexis-nexis/report-types/${id}`).set(authed());
     expect(deleteRes.status).toBe(204);
     expect(deleteRes.body).toEqual({});
 
-    const getRes = await request(app).get(`/report-types/${id}`).set(authed());
+    const getRes = await request(app).get(`/lexis-nexis/report-types/${id}`).set(authed());
     expect(getRes.status).toBe(200);
     expect(getRes.body.data.status).toBe('INACTIVE');
 
-    const reactivateRes = await request(app).post(`/report-types/${id}/reactivate`).set(authed());
+    const reactivateRes = await request(app)
+      .post(`/lexis-nexis/report-types/${id}/reactivate`)
+      .set(authed());
     expect(reactivateRes.status).toBe(200);
     expect(reactivateRes.body.data.status).toBe('ACTIVE');
   });
 
   it("filters by username — matches the caller's own profile, empty for any other username", async () => {
     await request(app)
-      .post('/report-types')
+      .post('/lexis-nexis/report-types')
       .set(authed())
       .send({ name: `RT ${Date.now()}-usernamefilter` });
-    const selfRes = await request(app).get('/users/self').set(authed());
+    const selfRes = await request(app).get('/lexis-nexis/users/self').set(authed());
     const username = selfRes.body.username as string | null;
 
     if (username) {
-      const matchRes = await request(app).get('/report-types').query({ username }).set(authed());
+      const matchRes = await request(app)
+        .get('/lexis-nexis/report-types')
+        .query({ username })
+        .set(authed());
       expect(matchRes.status).toBe(200);
       expect(matchRes.body.meta.total).toBeGreaterThan(0);
     }
 
     const noMatchRes = await request(app)
-      .get('/report-types')
+      .get('/lexis-nexis/report-types')
       .query({ username: `nobody-${Date.now()}` })
       .set(authed());
     expect(noMatchRes.status).toBe(200);
@@ -200,7 +205,7 @@ describe('report types', () => {
     // collection), so a fixed per_page can't assume any two rows share a
     // page.
     const ascRes = await request(app)
-      .get('/report-types')
+      .get('/lexis-nexis/report-types')
       .query({ order_by: 'name', order: 'asc', per_page: '100' })
       .set(authed());
     const ascNames: string[] = ascRes.body.data.map((rt: { name: string }) => rt.name);
@@ -210,7 +215,7 @@ describe('report types', () => {
     expect(ascNames).toEqual([...ascNames].sort());
 
     const descRes = await request(app)
-      .get('/report-types')
+      .get('/lexis-nexis/report-types')
       .query({ order_by: 'name', order: 'desc', per_page: '100' })
       .set(authed());
     const descNames: string[] = descRes.body.data.map((rt: { name: string }) => rt.name);
@@ -219,7 +224,7 @@ describe('report types', () => {
 
   it('rejects an invalid order_by value (422/1319)', async () => {
     const res = await request(app)
-      .get('/report-types')
+      .get('/lexis-nexis/report-types')
       .query({ order_by: 'not_a_real_column' })
       .set(authed());
     expect(res.status).toBe(422);

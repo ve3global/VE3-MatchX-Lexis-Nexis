@@ -1,3 +1,4 @@
+import { API_PREFIX } from '../apiPrefix.js';
 import type { RouteInfo } from './collectRoutes.js';
 
 /**
@@ -10,7 +11,7 @@ import type { RouteInfo } from './collectRoutes.js';
  * every route NOT here is assumed doc-compliant, verified by a one-time
  * human cross-check against IDU_REST_API_Documentation.pdf (constitution.md).
  */
-export const EXTENSION_ROUTES: RouteInfo[] = [
+const EXTENSION_ROUTES_UNPREFIXED: RouteInfo[] = [
   { method: 'POST', path: '/oauth/token/revoke' }, // EPIC-2, LN9
   { method: 'GET', path: '/addresses' }, // EPIC-3, LN10
   { method: 'GET', path: '/addresses/search' }, // EPIC-3, LN11
@@ -30,3 +31,11 @@ export const EXTENSION_ROUTES: RouteInfo[] = [
   // to set the URL in the first place — see webhooks/spec.md.
   { method: 'PUT', path: '/users/self/webhook-url' },
 ];
+
+// Every one of these lives under API_PREFIX in the live app (see app.ts) —
+// none is the health check, so no exception needed here unlike
+// collectRoutes.ts.
+export const EXTENSION_ROUTES: RouteInfo[] = EXTENSION_ROUTES_UNPREFIXED.map((route) => ({
+  ...route,
+  path: `${API_PREFIX}${route.path}`,
+}));
