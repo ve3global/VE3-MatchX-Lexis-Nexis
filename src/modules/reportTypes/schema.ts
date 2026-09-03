@@ -1,35 +1,8 @@
 import { z } from 'zod';
 import type { FieldErrorCodeMap } from '../../lib/validation.js';
-import { REPORT_ACTIONS } from '../../lib/reportActions.js';
+import { validateAgeRange } from '../../lib/validation.js';
+import { validateActionList } from '../../lib/reportActions.js';
 import { paginationQuerySchema } from '../../lib/pagination.js';
-
-function validateActionList(
-  list: string[],
-  field: 'primary_actions' | 'secondary_actions',
-  codes: { notExist: number; duplicate: number },
-  ctx: z.RefinementCtx,
-): void {
-  const seen = new Set<string>();
-  for (const action of list) {
-    if (!(REPORT_ACTIONS as readonly string[]).includes(action)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: [field],
-        message: `The ${action} report action does not exist`,
-        params: { code: codes.notExist },
-      });
-    }
-    if (seen.has(action)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: [field],
-        message: `The ${field} field has a duplicate value`,
-        params: { code: codes.duplicate },
-      });
-    }
-    seen.add(action);
-  }
-}
 
 function validateNoOverlap(primary: string[], secondary: string[], ctx: z.RefinementCtx): void {
   for (const action of primary.filter((a) => secondary.includes(a))) {
@@ -45,21 +18,6 @@ function validateNoOverlap(primary: string[], secondary: string[], ctx: z.Refine
       path: ['secondary_actions'],
       message,
       params: { code: 1348 },
-    });
-  }
-}
-
-function validateAgeRange(
-  ageMin: number | undefined,
-  ageMax: number | undefined,
-  ctx: z.RefinementCtx,
-): void {
-  if (ageMin !== undefined && ageMax !== undefined && ageMin > ageMax) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['age_min'],
-      message: 'The age_min must be less than or equal X',
-      params: { code: 1119 },
     });
   }
 }

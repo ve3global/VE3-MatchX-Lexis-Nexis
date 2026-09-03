@@ -499,8 +499,8 @@ const FOLDERS: FolderSpec[] = [
           statusTest(200),
           fieldEqualsTest(
             'first candidate is the doc sample address',
-            'data.0.full_address',
-            '204 Julius Road, Bristol, BS7 8EU',
+            'data.0.address1',
+            '204 Julius Road',
           ),
         ],
         saves: [{ as: 'address_reference', from: 'data.0.reference' }],
@@ -526,11 +526,7 @@ const FOLDERS: FolderSpec[] = [
         query: { postcode: 'BS7 8EU' },
         tests: [
           statusTest(200),
-          fieldEqualsTest(
-            'same doc sample as POST',
-            'data.0.full_address',
-            '204 Julius Road, Bristol, BS7 8EU',
-          ),
+          fieldEqualsTest('same doc sample as POST', 'data.0.address1', '204 Julius Road'),
         ],
       },
       {
@@ -546,11 +542,7 @@ const FOLDERS: FolderSpec[] = [
         path: '/addresses/{{address_reference}}',
         tests: [
           statusTest(200),
-          fieldEqualsTest(
-            'same address as the lookup',
-            'data.full_address',
-            '204 Julius Road, Bristol, BS7 8EU',
-          ),
+          fieldEqualsTest('same address as the lookup', 'data.address1', '204 Julius Road'),
         ],
       },
       {

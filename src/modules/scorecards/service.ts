@@ -117,6 +117,26 @@ export async function deleteScorecard(clientId: string, id: string): Promise<voi
   await prisma.scorecard.delete({ where: { id } });
 }
 
+/**
+ * Rejects a nonexistent/foreign scorecard_id (1179) and, per constitution.md
+ * ("Scorecard delete-while-attached"), a RETIRED one. Shared by report-types'
+ * `scorecard_id` (EPIC-5) and reports' inline `scorecard_id`
+ * (epic-4-reports-core/spec.md) — a retired scorecard shouldn't be newly
+ * assignable from either, even though the doc has no such concept at all.
+ */
+export async function assertScorecardExists(
+  clientId: string,
+  scorecardId: string | undefined,
+): Promise<void> {
+  if (!scorecardId) {
+    return;
+  }
+  const scorecard = await prisma.scorecard.findUnique({ where: { id: scorecardId } });
+  if (!scorecard || scorecard.clientId !== clientId || scorecard.status === 'RETIRED') {
+    throw new ApiError(422, singleFieldError('scorecard_id', 1179));
+  }
+}
+
 /** Replica-only extension (see constitution.md) — DRAFT -> PUBLISHED; a no-op if already published. */
 export async function publishScorecard(clientId: string, id: string): Promise<Scorecard> {
   const scorecard = await findScorecard(clientId, id);

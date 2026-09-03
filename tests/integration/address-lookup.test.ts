@@ -46,11 +46,12 @@ describe('address lookup', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data[0]).toMatchObject({
-      house: '204',
-      street: 'Julius Road',
-      town: 'Bristol',
+      address1: '204 Julius Road',
+      address2: 'Bristol',
+      address3: '',
+      address4: '',
+      address5: '',
       postcode: 'BS7 8EU',
-      full_address: '204 Julius Road, Bristol, BS7 8EU',
     });
   });
 
@@ -63,11 +64,13 @@ describe('address lookup', () => {
     expect(res.status).toBe(200);
     expect(res.body.data).toEqual([
       {
+        id: expect.any(Number),
         reference: expect.any(String),
-        full_address: '1 Test Street, Testville, TE1 1ST',
-        house: '1',
-        street: 'Test Street',
-        town: 'Testville',
+        address1: '1 Test Street',
+        address2: 'Testville',
+        address3: '',
+        address4: '',
+        address5: '',
         postcode: 'TE1 1ST',
       },
     ]);

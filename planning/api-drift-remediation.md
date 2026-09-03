@@ -146,11 +146,74 @@ EPIC-10 rebuild — the new webhook endpoints followed the existing
 itself shows both ways (secret unwrapped, test wrapped) and the rebuild
 matched verbatim.
 
+## New finding (2026-09-03, from a live LexisNexis sandbox capture) — `Lexis_nexis_API.docx`
+
+Captured request/response pairs from an actual sandbox call (not the PDF)
+against `POST /reports`, `POST /address-lookup`, and `POST /oauth/token`.
+Stronger evidence than the PDF where they disagree — this is the wire
+format a real integration will actually hit. Sandbox credentials/tokens in
+the source doc are not reproduced here.
+
+- [x] **`POST /address-lookup` response shape did not match what's
+  implemented — fixed 2026-09-03.** Captured response:
+  `{"data": [{"id": 17723725, "address1": "SHERLOCK HOLMES MUSEUM",
+  "address2": "221B BAKER STREET", "address3": "LONDON", "address4": "",
+  "address5": "ENGLAND", "postcode": "NW1 6XE"}]}` — the same
+  `id`/`address1-5`/`postcode` shape used elsewhere (report `address`,
+  `address_verification.address`), not the replica's old `AddressCandidate`
+  shape (`reference`, `full_address`, `house`, `street`, `town`,
+  `postcode`). Constitution.md's "response schema is never expanded in the
+  doc, so we're free to design a reasonable shape" no longer holds now that
+  a real response has been observed. `addressLookup/service.ts` now returns
+  `{id, address1-5, postcode}` plus an additive `reference` extension field
+  (see epic-3-address-lookup/spec.md's "Resolved conflicts"); tests and
+  `scripts/generate-postman-collection.ts` updated to match.
+- [x] **`POST /oauth/token` used HTTP Basic Auth + `grant_type` in the
+  sandbox capture, not just the JSON `{client_id, client_secret}` body —
+  fixed 2026-09-03 by accepting both.** Captured call authenticates via
+  `requests.post(TOKEN_URL, auth=(CLIENT_ID, CLIENT_SECRET),
+  data={"grant_type": "client_credentials"})` — i.e. an `Authorization:
+  Basic base64(id:secret)` header plus a `grant_type` form/body field, the
+  opposite of the constitution.md table's "Doc actually says `{client_id,
+  client_secret}` only... no `grant_type` field." Rather than replacing the
+  JSON-body form (this single capture doesn't prove it was rejected), both
+  are now accepted — Basic Auth wins when both are present. See
+  epic-2-auth/spec.md's "Resolved conflicts".
+- [x] **`POST /reports` inline mode (no `report_type_id`) also accepted
+  `scorecard_id`, `actions` (array of action slugs to run at creation),
+  `age_min`, `age_max` at the top level — not previously modeled, fixed
+  2026-09-03.** Captured payload: `{"enduser_agreement": true,
+  "reference": "...", "forename": "...", "surname": "...", "address":
+  {...}, "actions": ["credit-active"], "scorecard_id": "0423e225-...",
+  "age_min": 60, "age_max": 120, "test": false, "dob": "..."}`. A third
+  creation mode (inline subject + inline scoring), not covered by epic-4's
+  original two-mode split — see epic-4-reports-core/spec.md's "Resolved
+  conflicts" for the full design (inline-only fields, `age_min`/`age_max`
+  accepted-but-not-applied per the `uklexid` precedent, `actions`
+  validated against the still-stale `REPORT_ACTIONS` enum pending the
+  separate EPIC-7a/7b/7c slug-rename item below). `context` is also now
+  populated (`reference`, `enduser_agreement`, `scorecard_id`, `age_min`,
+  `age_max`) instead of stubbed `{}` — `full_er`/`nfi_address` still out
+  of scope.
+- **Confirms the real shape of the `context` object** that
+  `serializeReport` currently stubs as `{}` (see the "missing `data`
+  envelope" finding below, which is unrelated) — two captured examples:
+  `{"reference": "44_REC534792", "enduser_agreement": true, "scorecard_id":
+  "0423e225-...", "age_min": null, "age_max": null, "full_er": false,
+  "nfi_address": false}` (first call, `actions: ["credit-active"]`) and
+  `{"reference": "44_REC534792", "enduser_agreement": true, "scorecard_id":
+  "0423e225-..."}` (second call, same reference, no `actions` given) — note
+  `age_min`/`age_max` came back `null` even though `60`/`120` were sent,
+  and the field only appears in `context` when `actions` was also given.
+  Useful reference for whenever the `context` stub finding below gets
+  picked up, but not an action item on its own.
+
 ## Confirmed solid, no action needed
 
-`POST /oauth/token`, `POST /address-lookup`, reports core CRUD + audit +
-input-data (aside from the `uklexid` filter above), report-types/scorecards
-base CRUD paths, `GET /up`.
+`POST /oauth/token` (both auth forms fixed 2026-09-03, see above),
+`POST /address-lookup` (fixed 2026-09-03, see above), reports core CRUD +
+audit + input-data (aside from the `uklexid` filter above), report-types/
+scorecards base CRUD paths, `GET /up`.
 
 ## Verification note
 

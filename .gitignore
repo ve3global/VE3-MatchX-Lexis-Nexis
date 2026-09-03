@@ -3,3 +3,8 @@ dist/
 coverage/
 .env
 *.log
+
+# Full 300k-row bulk-validation dataset (42.6MB) — regenerate locally via
+# scripts/build-bulk-dataset.mjs (see docs/postman/bulk-data-validation/README.md).
+# The 2,000-row sample is small enough to commit and stays tracked.
+docs/postman/bulk-data-validation/LC-London-300k.csv

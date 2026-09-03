@@ -2,6 +2,7 @@ import type { Prisma, ReportType } from '@prisma/client';
 import { ApiError } from '../../middleware/errorHandler.js';
 import { singleFieldError } from '../../lib/validation.js';
 import { prisma } from '../../lib/prisma.js';
+import { assertScorecardExists } from '../scorecards/service.js';
 import type { CreateReportTypeRequest, UpdateReportTypeRequest } from './schema.js';
 
 // Maps the doc-facing `order_by` values to their DB column.
@@ -45,25 +46,6 @@ async function assertNameAvailable(
   });
   if (existing && existing.id !== excludeId) {
     throw new ApiError(422, singleFieldError('name', 1327));
-  }
-}
-
-/**
- * Rejects a nonexistent/foreign scorecard_id (1179) and, per constitution.md
- * ("Scorecard delete-while-attached"), a RETIRED one — EPIC-6's extension
- * lifecycle enforced here since a retired scorecard shouldn't be newly
- * assignable even though the doc has no such concept at all.
- */
-async function assertScorecardExists(
-  clientId: string,
-  scorecardId: string | undefined,
-): Promise<void> {
-  if (!scorecardId) {
-    return;
-  }
-  const scorecard = await prisma.scorecard.findUnique({ where: { id: scorecardId } });
-  if (!scorecard || scorecard.clientId !== clientId || scorecard.status === 'RETIRED') {
-    throw new ApiError(422, singleFieldError('scorecard_id', 1179));
   }
 }
 

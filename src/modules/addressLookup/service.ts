@@ -1,12 +1,15 @@
 import { int, pick, seedFrom, subSeed } from '../../lib/determinism.js';
 
 export interface AddressCandidate {
-  reference: string;
-  full_address: string;
-  house: string;
-  street: string;
-  town: string;
+  id: number;
+  address1: string;
+  address2: string;
+  address3: string;
+  address4: string;
+  address5: string;
   postcode: string;
+  /** Replica-only extension field (see epic-3-address-lookup/spec.md's "Resolved conflicts") — reversible encoding used by the GET /addresses/{reference} extension route, not present in the doc's own response shape. */
+  reference: string;
 }
 
 export interface AddressLookupInput {
@@ -63,13 +66,18 @@ function buildCandidate(
   town: string,
   postcode: string,
 ): AddressCandidate {
+  const reference = Buffer.from(JSON.stringify({ house, street, town, postcode })).toString(
+    'base64url',
+  );
   return {
-    reference: Buffer.from(JSON.stringify({ house, street, town, postcode })).toString('base64url'),
-    full_address: `${house} ${street}, ${town}, ${postcode}`,
-    house,
-    street,
-    town,
+    id: int(seedFrom(house, street, town, postcode), 10_000_000, 99_999_999),
+    address1: `${house} ${street}`,
+    address2: town,
+    address3: '',
+    address4: '',
+    address5: '',
     postcode,
+    reference,
   };
 }
 

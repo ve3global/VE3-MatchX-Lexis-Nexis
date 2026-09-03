@@ -1,0 +1,122 @@
+{
+  "info": {
+    "name": "LN Replica — Bulk Data Validation (LC London dataset)",
+    "description": "Standalone from the main demo collection (docs/postman/LN-Replica.postman_collection.json) — CSV data-file-driven run against POST /reports using the LC_London_TestData_300K_25pct_issues.csv sample dataset, mapped to the report's inline forename/surname/dob/address/postcode fields. Each iteration's expected HTTP status and expected {field, code} error set is pre-computed per row (see ../../../scripts/build-bulk-dataset.mjs) directly from the real createReportSchema validation rules — not guessed. Requires a CSV data file passed via `-d` (see README.md in this folder for the two prepared files and the exact Newman invocation, including the required --delay-request pacing to stay under the 10 req/s rate limiter).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000" },
+    { "key": "client_id", "value": "demo-client" },
+    { "key": "client_secret", "value": "demo-secret-change-me" },
+    { "key": "access_token", "value": "" },
+    { "key": "token_expires_at", "value": "0" }
+  ],
+  "item": [
+    {
+      "name": "POST /reports — data-driven row (auto-refreshes its own bearer token)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Access tokens expire after 30 minutes (ACCESS_TOKEN_TTL_SECONDS in src/modules/auth/service.ts).",
+              "// A full 300k-row run at 9 req/s takes ~9 hours, far longer than one token's",
+              "// lifetime, so this refreshes proactively (60s safety margin) instead of",
+              "// fetching once at the start.",
+              "var now = Date.now();",
+              "var expiresAt = parseInt(pm.collectionVariables.get('token_expires_at') || '0', 10);",
+              "",
+              "if (!pm.collectionVariables.get('access_token') || now > expiresAt - 60000) {",
+              "  pm.sendRequest({",
+              "    url: pm.collectionVariables.get('base_url') + '/lexis-nexis/oauth/token',",
+              "    method: 'POST',",
+              "    header: { 'Content-Type': 'application/json' },",
+              "    body: {",
+              "      mode: 'raw',",
+              "      raw: JSON.stringify({",
+              "        client_id: pm.collectionVariables.get('client_id'),",
+              "        client_secret: pm.collectionVariables.get('client_secret')",
+              "      })",
+              "    }",
+              "  }, function (err, res) {",
+              "    if (err) {",
+              "      console.error('Token refresh failed:', err);",
+              "      return;",
+              "    }",
+              "    var body = res.json();",
+              "    pm.collectionVariables.set('access_token', body.access_token);",
+              "    pm.collectionVariables.set('token_expires_at', String(Date.now() + body.expires_in * 1000));",
+              "  });",
+              "}",
+              "",
+              "// Build the request body from this iteration's CSV row via JSON.stringify",
+              "// (not raw {{Field}} string interpolation into the JSON template) so a",
+              "// value containing a quote or backslash can never produce malformed JSON.",
+              "var payload = {",
+              "  forename: pm.iterationData.get('Forename'),",
+              "  surname: pm.iterationData.get('Surname'),",
+              "  dob: pm.iterationData.get('Dob'),",
+              "  address: {",
+              "    address1: pm.iterationData.get('Address1'),",
+              "    address2: pm.iterationData.get('Address2'),",
+              "    address3: pm.iterationData.get('Address3'),",
+              "    address4: pm.iterationData.get('Address4'),",
+              "    address5: pm.iterationData.get('Address5'),",
+              "    postcode: pm.iterationData.get('Postcode')",
+              "  },",
+              "  enduser_agreement: true",
+              "};",
+              "pm.variables.set('request_body_json', JSON.stringify(payload));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var rowId = pm.iterationData.get('RowId');",
+              "var expectedStatus = parseInt(pm.iterationData.get('ExpectedStatus'), 10);",
+              "var expectedErrors = JSON.parse(pm.iterationData.get('ExpectedErrors') || '[]');",
+              "",
+              "pm.test('row ' + rowId + ': status ' + expectedStatus, function () {",
+              "  pm.response.to.have.status(expectedStatus);",
+              "});",
+              "",
+              "if (expectedStatus === 422) {",
+              "  var body = pm.response.json();",
+              "  expectedErrors.forEach(function (exp) {",
+              "    pm.test('row ' + rowId + ': ' + exp.field + ' carries code ' + exp.code, function () {",
+              "      pm.expect(body.errors, 'errors object present').to.be.an('object');",
+              "      var fieldErrors = body.errors[exp.field];",
+              "      pm.expect(fieldErrors, 'errors.' + exp.field + ' present').to.be.an('array');",
+              "      var codes = fieldErrors.map(function (e) { return e.code; });",
+              "      pm.expect(codes, 'errors.' + exp.field + ' includes code ' + exp.code).to.include(exp.code);",
+              "    });",
+              "  });",
+              "} else {",
+              "  pm.test('row ' + rowId + ': report created with status STARTED', function () {",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.data.status).to.eql('STARTED');",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "url": "{{base_url}}/lexis-nexis/reports",
+        "body": {
+          "mode": "raw",
+          "raw": "{{request_body_json}}"
+        }
+      }
+    }
+  ]
+}
