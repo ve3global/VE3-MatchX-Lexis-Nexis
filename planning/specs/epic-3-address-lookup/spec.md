@@ -34,8 +34,9 @@ doc-vs-ticket precedence rule.
 - At least one of `postcode` or `full_address` must be given
 - Returns a list of deterministic, fake candidate addresses — same input
   always returns the same candidates, in the same order
-- Each candidate includes a `reference` usable to re-fetch that exact
-  address later (extension field — see "Resolved conflicts")
+- Each candidate is `{id, address1, address2, address3, address4, address5,
+  postcode}` (doc-confirmed shape — see "Resolved conflicts"), plus a
+  `reference` usable to re-fetch that exact address later (extension field)
 - Malformed input (wrong type, over max length) returns 422 with
   field-level codes from `lib/errorCodes.ts` (1024-1035)
 - The doc's sample subject's address (204 Julius Road, BS7 8EU) is
@@ -64,18 +65,23 @@ summarized for this epic:
   replica-only extension aliases delegating to the same
   `addressLookup/service.ts` — never assumed by anything claiming doc
   parity, allowlisted in EPIC-8's drift check.
-- **Response shape is designed, not transcribed.** The doc never expands
-  `POST /address-lookup`'s response schema, so this replica is free to
-  choose a reasonable shape. We chose `{"data": [{reference, full_address,
-  house, street, town, postcode}, ...]}`, matching the `data` envelope
-  convention used doc-wide elsewhere (see reports/report-types/scorecards
-  list responses).
-- **`reference` is stateless, not a DB row.** It's a reversible encoding of
-  the candidate's own fields (base64url JSON), not a randomly-generated ID
-  requiring persistence — keeps the "deterministic, no hidden state"
-  property of the rest of the fake-data engine, and means `GET
-  /addresses/{reference}` never depends on a prior call having happened in
-  this process.
+- **Response shape confirmed by a live sandbox capture (2026-09-03,
+  `planning/api-drift-remediation.md`), not designed freehand.** A real
+  `POST /address-lookup` response looks like `{"data": [{"id",
+  "address1".."address5", "postcode"}]}` — the same `id`/`address1-5`/
+  `postcode` shape used elsewhere (report `address`,
+  `address_verification.address`), not the previously-assumed
+  `full_address`/`house`/`street`/`town` breakdown. This replica now
+  returns that doc-confirmed shape, mapping the generated `house`/`street`
+  into `address1` and `town` into `address2` (`address3-5` left empty —
+  no county/country concept exists in the fake-data engine).
+- **`reference` stays as an additive, replica-only extension field**
+  (labeled in `addressLookup/service.ts`) alongside the doc-confirmed
+  fields — it's a reversible encoding of the candidate's own fields
+  (base64url JSON), not a randomly-generated ID requiring persistence, and
+  is what `GET /addresses/{reference}` decodes. `id` is a separate,
+  doc-shaped deterministic pseudo-random integer with no decode meaning of
+  its own.
 - **"At least one of `postcode`/`full_address`" has no dedicated doc error
   code.** Codes 1024-1035 cover per-field type/length checks only; no
   "required when X is absent" code exists for this bare (non-`address.`-

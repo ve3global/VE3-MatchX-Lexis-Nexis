@@ -1418,7 +1418,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('first candidate is the doc sample address', () => pm.expect(pm.response.json()[\"data\"][0][\"full_address\"]).to.eql(\"204 Julius Road, Bristol, BS7 8EU\"));",
+                  "pm.test('first candidate is the doc sample address', () => pm.expect(pm.response.json()[\"data\"][0][\"address1\"]).to.eql(\"204 Julius Road\"));",
                   "pm.collectionVariables.set('address_reference', pm.response.json()[\"data\"][0][\"reference\"]);"
                 ]
               }
@@ -1510,7 +1510,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('same doc sample as POST', () => pm.expect(pm.response.json()[\"data\"][0][\"full_address\"]).to.eql(\"204 Julius Road, Bristol, BS7 8EU\"));"
+                  "pm.test('same doc sample as POST', () => pm.expect(pm.response.json()[\"data\"][0][\"address1\"]).to.eql(\"204 Julius Road\"));"
                 ]
               }
             }
@@ -1559,7 +1559,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('same address as the lookup', () => pm.expect(pm.response.json()[\"data\"][\"full_address\"]).to.eql(\"204 Julius Road, Bristol, BS7 8EU\"));"
+                  "pm.test('same address as the lookup', () => pm.expect(pm.response.json()[\"data\"][\"address1\"]).to.eql(\"204 Julius Road\"));"
                 ]
               }
             }

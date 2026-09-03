@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import type { FieldErrorCodeMap } from '../../lib/validation.js';
+import { validateAgeRange } from '../../lib/validation.js';
+import { validateActionList } from '../../lib/reportActions.js';
 
 const INLINE_FIELDS = [
   'forename',
@@ -8,6 +10,10 @@ const INLINE_FIELDS = [
   'dob',
   'address',
   'enduser_agreement',
+  'scorecard_id',
+  'actions',
+  'age_min',
+  'age_max',
 ] as const;
 
 const addressSchema = z.object({
@@ -40,6 +46,14 @@ export const createReportSchema = z
     reference: z.string().max(255).optional(),
     enduser_agreement: z.boolean().optional(),
     test: z.boolean().optional(),
+    // Third creation mode confirmed by a live sandbox capture (2026-09-03,
+    // planning/api-drift-remediation.md) — inline subject data plus inline
+    // scoring/actions, distinct from the report_type_id-configured mode
+    // (see epic-4-reports-core/spec.md's "Resolved conflicts").
+    scorecard_id: z.string().uuid().optional(),
+    actions: z.array(z.string()).optional(),
+    age_min: z.number().int().min(0).max(120).optional(),
+    age_max: z.number().int().min(0).max(120).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.dob !== undefined && !DATE_RE.test(data.dob)) {
@@ -116,6 +130,15 @@ export const createReportSchema = z
         params: { code: 1054 },
       });
     }
+
+    // No dedicated doc code exists for `actions` (a genuinely new field —
+    // see planning/api-drift-remediation.md's 2026-09-03 finding), so it
+    // falls back to the generic 1319, same precedent as this file's other
+    // undocumented-condition fields.
+    if (data.actions) {
+      validateActionList(data.actions, 'actions', { notExist: 1319, duplicate: 1319 }, ctx);
+    }
+    validateAgeRange(data.age_min, data.age_max, ctx);
   });
 
 export type CreateReportRequest = z.infer<typeof createReportSchema>;
@@ -134,6 +157,13 @@ export const CREATE_REPORT_ERROR_CODES: FieldErrorCodeMap = {
   'address.address4': { string: 1018, max: 1134 },
   'address.address5': { string: 1019, max: 1135 },
   'address.postcode': { string: 1021, max: 1136 },
+  // Same codes reportTypes/schema.ts uses for the identical field names —
+  // reused per the project's "same code for the same field name" precedent
+  // (e.g. EPIC-6's scorecard_id 1179), not doc-confirmed for this endpoint.
+  scorecard_id: { string: 1178, invalid: 1207 },
+  actions: { string: 1319 },
+  age_min: { string: 1113, min: 1114, max: 1115 },
+  age_max: { string: 1116, min: 1117, max: 1118 },
 };
 
 export const listReportsQuerySchema = z.object({

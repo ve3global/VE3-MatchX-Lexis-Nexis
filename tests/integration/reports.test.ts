@@ -431,6 +431,148 @@ describe('reports', () => {
     ]);
   });
 
+  it('returns the context object with reference/enduser_agreement/scorecard_id (age_min/age_max always null)', async () => {
+    const res = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send({ ...validInline, reference: 'ctx-ref-1' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.context).toEqual({
+      reference: 'ctx-ref-1',
+      enduser_agreement: true,
+      scorecard_id: null,
+      age_min: null,
+      age_max: null,
+    });
+  });
+
+  it('accepts inline scorecard_id/actions and completes immediately, computing an assessment', async () => {
+    const scorecardRes = await request(app)
+      .post('/lexis-nexis/scorecards')
+      .set(authed())
+      .send({
+        name: `SC ${Date.now()}-inline`,
+        pass_threshold: 80,
+        fail_threshold: 40,
+        groups: [
+          {
+            group_name: 'credit',
+            min_score: 0,
+            rules: [{ attribute: 'credit_active', match_score: 30, no_match_score: -30 }],
+          },
+        ],
+      });
+
+    const res = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send({
+        ...validInline,
+        scorecard_id: scorecardRes.body.data.id,
+        actions: ['credit-check'],
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.status).toBe('COMPLETE');
+    expect(res.body.data.context.scorecard_id).toBe(scorecardRes.body.data.id);
+    expect(res.body.data.assessment).toMatchObject({ result: expect.any(String) });
+    expect(res.body.data['credit-check']).toBeDefined();
+  });
+
+  it('stays STARTED when an inline action needs input the create-report request never collects', async () => {
+    const res = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send({ ...validInline, actions: ['bank-account-validation'] });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.status).toBe('STARTED');
+  });
+
+  it('rejects a nonexistent inline scorecard_id (422/1179)', async () => {
+    const res = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send({ ...validInline, scorecard_id: '00000000-0000-0000-0000-000000000000' });
+
+    expect(res.status).toBe(422);
+    expect(res.body.errors.scorecard_id[0].code).toBe(1179);
+  });
+
+  it('rejects a RETIRED inline scorecard_id (422/1179)', async () => {
+    const scorecardRes = await request(app)
+      .post('/lexis-nexis/scorecards')
+      .set(authed())
+      .send({
+        name: `SC ${Date.now()}-retired`,
+        pass_threshold: 80,
+        fail_threshold: 40,
+        groups: [],
+      });
+    await request(app)
+      .post(`/lexis-nexis/scorecards/${scorecardRes.body.data.id}/retire`)
+      .set(authed());
+
+    const res = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send({ ...validInline, scorecard_id: scorecardRes.body.data.id });
+
+    expect(res.status).toBe(422);
+    expect(res.body.errors.scorecard_id[0].code).toBe(1179);
+  });
+
+  it('rejects an unrecognized inline action name (422)', async () => {
+    const res = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send({ ...validInline, actions: ['not-a-real-action'] });
+
+    expect(res.status).toBe(422);
+    expect(res.body.errors.actions[0].code).toBe(1319);
+  });
+
+  it('rejects a duplicate inline action name (422)', async () => {
+    const res = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send({ ...validInline, actions: ['credit-check', 'credit-check'] });
+
+    expect(res.status).toBe(422);
+    expect(res.body.errors.actions.map((e: { code: number }) => e.code)).toContain(1319);
+  });
+
+  it('rejects age_min greater than age_max (422/1119)', async () => {
+    const res = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send({ ...validInline, age_min: 60, age_max: 30 });
+
+    expect(res.status).toBe(422);
+    expect(res.body.errors.age_min[0].code).toBe(1119);
+  });
+
+  it('rejects report_type_id combined with scorecard_id/actions/age_min/age_max (422/1149)', async () => {
+    const reportTypeRes = await request(app)
+      .post('/lexis-nexis/report-types')
+      .set(authed())
+      .send({ name: `RT ${Date.now()}-combo2` });
+
+    const res = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send({
+        report_type_id: reportTypeRes.body.data.id,
+        actions: ['credit-check'],
+        age_min: 18,
+      });
+
+    expect(res.status).toBe(422);
+    expect(res.body.errors.actions[0].code).toBe(1149);
+    expect(res.body.errors.age_min[0].code).toBe(1149);
+  });
+
   it('returns submitted subject fields as input-data', async () => {
     const createRes = await request(app)
       .post('/lexis-nexis/reports')

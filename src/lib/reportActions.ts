@@ -1,3 +1,5 @@
+import type { RefinementCtx } from 'zod';
+
 /**
  * The doc's fixed report-action-name enum (appendix "List of report
  * actions", 27 entries). Every name here traces to real evidence, not
@@ -71,4 +73,38 @@ export type ReportAction = (typeof REPORT_ACTIONS)[number];
 
 export function isReportAction(value: string): value is ReportAction {
   return (REPORT_ACTIONS as readonly string[]).includes(value);
+}
+
+/**
+ * Shared by report-types' `primary_actions`/`secondary_actions` and
+ * reports' inline `actions` (epic-4-reports-core/spec.md) — every list of
+ * action-name strings gets the same "does this action exist" / "no
+ * duplicates" treatment, just against different doc error codes per field.
+ */
+export function validateActionList(
+  list: string[],
+  field: 'primary_actions' | 'secondary_actions' | 'actions',
+  codes: { notExist: number; duplicate: number },
+  ctx: RefinementCtx,
+): void {
+  const seen = new Set<string>();
+  for (const action of list) {
+    if (!isReportAction(action)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [field],
+        message: `The ${action} report action does not exist`,
+        params: { code: codes.notExist },
+      });
+    }
+    if (seen.has(action)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [field],
+        message: `The ${field} field has a duplicate value`,
+        params: { code: codes.duplicate },
+      });
+    }
+    seen.add(action);
+  }
 }

@@ -1,4 +1,4 @@
-import type { ZodError, ZodIssue } from 'zod';
+import type { RefinementCtx, ZodError, ZodIssue } from 'zod';
 import { errorMessage } from './errorCodes.js';
 
 export type RuleType = 'required' | 'string' | 'min' | 'max' | 'invalid' | 'duplicate' | 'custom';
@@ -69,6 +69,26 @@ export function mapZodError(error: ZodError, codeMap: FieldErrorCodeMap): Valida
     message: firstError?.message ?? 'The given data was invalid.',
     errors,
   };
+}
+
+/**
+ * Shared by report-types and reports (epic-4-reports-core/spec.md) —
+ * both reuse doc code 1119 ("age_min must be less than or equal X") for
+ * the same cross-field rule on the same field names.
+ */
+export function validateAgeRange(
+  ageMin: number | undefined,
+  ageMax: number | undefined,
+  ctx: RefinementCtx,
+): void {
+  if (ageMin !== undefined && ageMax !== undefined && ageMin > ageMax) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['age_min'],
+      message: 'The age_min must be less than or equal X',
+      params: { code: 1119 },
+    });
+  }
 }
 
 /** Builds the same `{message, errors}` shape as `mapZodError` for a single business-rule violation. */

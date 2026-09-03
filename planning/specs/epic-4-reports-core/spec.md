@@ -37,27 +37,36 @@ doc-vs-ticket precedence rule.
 
 **LN14**
 - `POST /reports` accepts either `report_type_id` **or** inline
-  (`forename`, `surname`, `dob`, `address`, `enduser_agreement`) — never
-  both (422, code 1149 if both given)
+  (`forename`, `surname`, `dob`, `address`, `enduser_agreement`, plus the
+  inline-only `scorecard_id`/`actions`/`age_min`/`age_max` below) — never
+  both (422, code 1149 if any inline field, including the four new ones,
+  is combined with `report_type_id`)
 - Inline mode requires `forename`/`surname`/`enduser_agreement`/`dob`/
   `address.address1`/`address.postcode` (see "Resolved conflicts" — no
   `lexid` alternative exists in phase 1, so these are unconditionally
   required)
+- Inline mode also accepts `scorecard_id` (an existing, non-`RETIRED`
+  scorecard owned by the client — 422/1179 otherwise, same check EPIC-5
+  uses), `actions` (an array of action names, same existence/duplicate
+  checks as `primary_actions` — 422/1319, no dedicated doc code), and
+  `age_min`/`age_max` (422/1119 if `age_min > age_max`) — confirmed by a
+  live sandbox capture (2026-09-03, `planning/api-drift-remediation.md`),
+  not part of the original two-mode split above
 - `report_type_id` mode: the report type must exist, belong to the same
   client, and be `ACTIVE`; if it has `reference_required: true`, a
   `reference` must be given (422, code 1250)
 - A `report_type_id` report's `scorecard_id` is copied from the report
   type at creation time, decoupled from the report type afterward
-- Status is `COMPLETE` once every one of the report type's
-  `primary_actions` has actually run; `STARTED` otherwise. At the time
-  this epic landed, no action modules existed yet, so every
-  `report_type_id` report stayed `STARTED` forever — EPIC-7 (now landed,
-  see its own specs) populated the registry, so a report type whose
-  primary actions all accept an empty body now completes automatically at
-  creation; one needing its own input (bank details, a passport MRZ, …)
-  still stays `STARTED` until that action is run individually via
-  `POST /reports/{id}/actions/{action}`. An inline report is always
-  created `STARTED` (no primary-actions list to complete).
+- Status is `COMPLETE` once every one of the requested actions has
+  actually run; `STARTED` otherwise. The requested-actions list is the
+  report type's `primary_actions` in report_type_id mode, or the inline
+  `actions` field in inline mode — either way, an action needing its own
+  input (bank details, a passport MRZ, …) stays `STARTED` until run
+  individually via `POST /reports/{id}/actions/{action}`. At the time this
+  epic landed, no action modules existed yet, so every `report_type_id`
+  report stayed `STARTED` forever — EPIC-7 (now landed, see its own specs)
+  populated the registry. A plain inline report with no `actions` field at
+  all is always created `STARTED` (no requested-actions list to complete).
 
 **LN15**
 - `GET /reports` returns the client's reports in the doc's
@@ -137,6 +146,49 @@ summarized for this epic:
   `lib/pagination.ts`'s comment and `planning/api-drift-remediation.md`).
   `GET /reports` (list), `.../audit`, and `.../input-data` already used it;
   this closes the gap for the two endpoints that didn't.
+- **Inline `scorecard_id`/`actions`/`age_min`/`age_max` are a third
+  creation mode, confirmed by a live sandbox capture, not designed.** The
+  original ticket only described `report_type_id` **or** inline subject
+  data; the capture showed inline subject data *plus* inline
+  scoring/actions on the same request, with no `report_type_id` at all.
+  Rather than folding these into the existing two-mode split, they're
+  treated as inline-only fields (prohibited alongside `report_type_id`,
+  same 1149 code as `forename`/`surname`/etc.) — keeping report_type_id
+  mode's own scorecard/primary-actions configuration the sole authority
+  for that mode, unchanged.
+- **`age_min`/`age_max` are accepted and range-validated but never
+  applied — always `null` in `context`, mirroring the `uklexid` precedent
+  above.** The sandbox capture sent `age_min: 60, age_max: 120` and got
+  `null`/`null` back in `context` — this replica has no report-level
+  age-gating concept to apply them to (that's report-*type*-level
+  configuration, EPIC-5, a separate concern), so honestly reflecting the
+  gap means accepting/validating the input without pretending to act on
+  it, rather than silently ignoring or rejecting it.
+- **`actions`' does-it-exist/duplicate codes reuse the generic 1319**,
+  same as `is_default`/`category` elsewhere — no dedicated doc code exists
+  for a field the doc doesn't define at all. `scorecard_id`'s Zod-level
+  codes (1178/1207) and `age_min`/`age_max`'s (1113-1119) reuse the exact
+  codes `reportTypes/schema.ts` already uses for the same field names —
+  same "same code for the same field name" precedent as EPIC-6's
+  `scorecard_id` 1179 business-rule code, which this endpoint's runtime
+  check (`assertScorecardExists`, now shared from `scorecards/service.ts`)
+  reuses verbatim.
+- **`context` is now populated for every report, not stubbed `{}`.**
+  Shape confirmed by the same sandbox capture: `{reference,
+  enduser_agreement, scorecard_id, age_min, age_max}`. `full_er`/
+  `nfi_address` (also present in the capture) are deliberately left out —
+  wiring them up depends on epic-7a's `full_er` action flag and an
+  `nfi-address` action result flowing into this object, a separate scoped
+  concern.
+- **`actions` validates against the existing (stale) `REPORT_ACTIONS`
+  enum, which does not yet match the sandbox capture's own example.** The
+  capture's payload used `"actions": ["credit-active"]` — the doc-correct
+  slug per `planning/api-drift-remediation.md`'s EPIC-7a/7b/7c
+  slug-mismatch finding — but the registry/enum still has the old
+  `credit-check` name pending that separate, not-yet-fixed tracked item.
+  Fixing the inline-`actions` feature here does not fix that unrelated
+  drift; tests in this epic use `credit-check` (today's real slug), not
+  `credit-active`.
 
 ## Out of scope
 

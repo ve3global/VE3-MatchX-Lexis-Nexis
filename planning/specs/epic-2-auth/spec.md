@@ -24,8 +24,11 @@ doc-vs-ticket precedence rule.
 ## Acceptance criteria
 
 **LN7**
-- `POST /oauth/token` accepts `client_id` and `client_secret` (see "Resolved
-  conflicts" — no `grant_type` field, per the doc)
+- `POST /oauth/token` accepts `client_id` and `client_secret` either as a
+  JSON body, or as `Authorization: Basic base64(client_id:client_secret)`
+  with an ignored `grant_type` body field (see "Resolved conflicts" — a
+  live sandbox capture uses the latter; when both are present, Basic Auth
+  wins)
 - Valid credentials return an access token, `token_type=Bearer`, and
   `expires_in` seconds
 - Invalid `client_id`/`client_secret` returns HTTP 401 (see "Resolved
@@ -64,10 +67,20 @@ doc-vs-ticket precedence rule.
 Full detail in [constitution.md](../../constitution.md#resolved-conflicts-reference-table);
 summarized for this epic:
 
-- **No `grant_type`/`scope` on the token request.** The doc's `POST
-  /oauth/token` body is exactly `{client_id, client_secret}` — no RFC 6749
-  client-credentials envelope. We replicate the doc's body, not LN7's
-  literal wording.
+- **Both a JSON `{client_id, client_secret}` body and HTTP Basic Auth +
+  `grant_type` are accepted — a live sandbox capture (2026-09-03,
+  `planning/api-drift-remediation.md`) contradicted the PDF-only
+  assumption that no `grant_type` field exists.** The PDF's own sample
+  showed a plain JSON body with no `grant_type`, but a real client
+  authenticated via `Authorization: Basic base64(id:secret)` +
+  `{"grant_type": "client_credentials"}` — standard OAuth2
+  client-credentials form. Both are kept rather than picking one: the PDF
+  form for backward compatibility with anything already using it, the
+  Basic Auth form because it's confirmed live. `grant_type` itself is
+  never validated — Zod's default object parsing already ignores unknown
+  keys, so a JSON-body caller who also sends `grant_type` was always fine.
+  `src/modules/auth/routes.ts`'s `basicAuthCredentials()` decodes the
+  header when present and takes precedence over the body entirely.
 - **401 body is `{"message":"Unauthenticated"}`, not `{"error":
   "invalid_client"}`.** This exact string appears in the doc's own 401
   samples elsewhere, so it's replicated verbatim across every 401 in the

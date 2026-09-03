@@ -11,6 +11,7 @@ import { singleFieldError } from '../../lib/validation.js';
 import { ApiError, ValidationError } from '../../middleware/errorHandler.js';
 import { createNotification } from '../notifications/service.js';
 import { deliverEvent } from '../webhooks/service.js';
+import { assertScorecardExists } from '../scorecards/service.js';
 import { evaluateScorecard, type ScoreGroup } from '../../scoring/engine.js';
 import { ACTION_REGISTRY } from './actions/registry.js';
 import type { ActionSubject } from './actions/types.js';
@@ -69,10 +70,24 @@ export function serializeReport(report: ReportWithRelations) {
     enduser_agreement: report.enduserAgreement,
     test: report.test,
     status: report.status,
-    // Minimal doc-shaped stubs — no users/webhooks/context data exists in
-    // phase 1 (see planning/constitution.md's phase-2 deferral list).
+    // Minimal doc-shaped stub — no users/webhooks data exists in phase 1
+    // (see planning/constitution.md's phase-2 deferral list).
     user: {},
-    context: {},
+    // Shape confirmed by a live sandbox capture (2026-09-03,
+    // planning/api-drift-remediation.md). `age_min`/`age_max` come back
+    // null there even when submitted — this replica has no report-level
+    // age-gating concept (same honest-gap precedent as EPIC-4's `uklexid`
+    // filter), so they're always null rather than echoing an input that
+    // isn't actually applied. `full_er`/`nfi_address` aren't populated yet
+    // (out of scope — they depend on wiring epic-7a's `full_er` action
+    // flag and an `nfi-address` action result through to this object).
+    context: {
+      reference: report.reference,
+      enduser_agreement: report.enduserAgreement,
+      scorecard_id: report.scorecardId,
+      age_min: null,
+      age_max: null,
+    },
     annotations: {},
     assessment,
     attributes,
@@ -100,6 +115,12 @@ export async function createReport(
     if (reportType.referenceRequired && !input.reference) {
       throw new ApiError(422, singleFieldError('reference', 1250));
     }
+  } else {
+    // Inline scorecard_id (epic-4-reports-core/spec.md's third creation
+    // mode) — report_type_id-mode reports get their scorecard from the
+    // report type instead, already validated when that report type was
+    // created, so this only runs for the inline path.
+    await assertScorecardExists(clientId, input.scorecard_id);
   }
 
   const subject: ActionSubject = {
@@ -111,13 +132,17 @@ export async function createReport(
   };
   const seed = subjectSeed(subject);
 
-  // Only primary actions whose schema accepts an empty body can run
+  // Only requested actions whose schema accepts an empty body can run
   // automatically at creation — anything needing its own input (bank
   // details, a passport MRZ, an OTP code, ...) has nowhere to get that
   // input from a report-creation request, and must be run individually
   // via POST /reports/{id}/actions/{action} once that data is available
-  // (see spec.md's "Resolved conflicts").
-  const actionRuns = (reportType?.primaryActions ?? []).flatMap((actionName) => {
+  // (see spec.md's "Resolved conflicts"). The requested-actions list comes
+  // from either the report type's `primary_actions`, or — for an inline
+  // report with no report type — the inline `actions` field confirmed by
+  // a live sandbox capture (2026-09-03, planning/api-drift-remediation.md).
+  const requestedActions = reportType ? reportType.primaryActions : input.actions;
+  const actionRuns = (requestedActions ?? []).flatMap((actionName) => {
     const module = ACTION_REGISTRY[actionName];
     if (!module) return [];
     const parsedBody = module.schema.safeParse({});
@@ -135,21 +160,24 @@ export async function createReport(
       },
     ];
   });
-  // Inline reports (no report type) never auto-complete — there's no
-  // primary-actions list to have finished. A report_type_id report
-  // completes only once every one of its primary actions has actually run.
-  const status = reportType
-    ? actionRuns.length === reportType.primaryActions.length
-      ? 'COMPLETE'
-      : 'STARTED'
-    : 'STARTED';
+  // A plain inline report (no report type, no `actions` field at all)
+  // never auto-completes — there's no requested-actions list to have
+  // finished. Otherwise (a report_type_id's primary_actions — even an
+  // empty one — or an inline `actions` list) completes once every
+  // requested action that exists has actually run.
+  const status =
+    requestedActions !== undefined
+      ? actionRuns.length === requestedActions.length
+        ? 'COMPLETE'
+        : 'STARTED'
+      : 'STARTED';
 
   const created = await prisma.$transaction(async (tx) => {
     const report = await tx.report.create({
       data: {
         clientId,
         reportTypeId: reportType?.id,
-        scorecardId: reportType?.scorecardId,
+        scorecardId: reportType?.scorecardId ?? input.scorecard_id,
         forename: input.forename,
         middlename: input.middlename,
         surname: input.surname,
