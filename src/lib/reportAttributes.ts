@@ -1,14 +1,15 @@
 /**
  * The doc's fixed report-attribute-name enum (appendix "List of report
  * attributes", ~55 entries). The original 8 (EPIC-6) were confirmed from
- * EPIC-1's seed scorecard; the rest are this replica's own output field
- * names for the 27 action modules built in
- * EPIC-7a/7b/7c (see each module under modules/reports/actions/ — most
- * attribute *names* are designed, not transcribed, since the doc's own
- * ~55-name list isn't available; only the action *names themselves* and,
- * for death-screening/address-verification, doc-confirmed field counts
- * are real evidence). Still under 55 entries, so there's room to grow
- * without ever needing to shrink — same note as lib/reportActions.ts.
+ * EPIC-1's seed scorecard; the address-verification/company-officer/ccj/
+ * credit/lexid-match entries are confirmed by a live sandbox capture
+ * (2026-09-10, `planning/api-drift-remediation.md`) — including its own
+ * worked scorecard example, which literally rules on these exact names.
+ * The remainder are this replica's own output field names for the
+ * still-unconfirmed EPIC-7a/7b/7c action modules (see each module under
+ * modules/reports/actions/ — designed, not transcribed). Still under 55
+ * entries, so there's room to grow without ever needing to shrink — same
+ * note as lib/reportActions.ts.
  */
 export const REPORT_ATTRIBUTES = [
   // EPIC-6-confirmed.
@@ -20,16 +21,43 @@ export const REPORT_ATTRIBUTES = [
   'death_ddri',
   'death_gro',
   'death_halo',
-  // address-verification (representative subset of the doc's ~25).
-  'address_matched',
-  'address_current',
-  'address_previous_count',
-  'address_first_seen_years',
-  'address_electoral_roll',
-  'address_nfi_match',
+  // address-verification — base set (2026-09-10 capture).
+  'address_current_er',
+  'address_gone_away_high',
+  'address_gone_away_very_high',
+  'address_historic_er',
+  'address_companies_house',
+  'address_insolvency_service',
+  'address_registry_trust',
+  'address_telephone_directory',
+  'address_tracesmart_register',
+  // address-verification — nfi_address-gated extension (same capture).
   'address_council_tax',
-  'address_confidence_score',
-  'address_full_er_match',
+  'address_council_tax_reduction_scheme',
+  'address_deferred_pensions',
+  'address_housing_benefits',
+  'address_housing_tenants',
+  'address_nfi_sources',
+  'address_payroll',
+  'address_pensions',
+  'address_pensions_gratuities',
+  'address_personal_budgets',
+  'address_personal_licence',
+  'address_right_to_buy',
+  'address_state_benefits',
+  'address_student_loans',
+  'address_taxi_drivers',
+  'address_transport_pass',
+  'address_waiting_list',
+  // company-officer-screening (same capture; renamed from director-check).
+  'company_officer_current',
+  'company_officer_historic',
+  // ccj-screening (same capture; renamed from ccj-check).
+  'ccj',
+  // credit-active (same capture; renamed from credit-check).
+  'credit_lenders',
+  // lexid-match (same capture; newly implemented).
+  'lexid_match',
   // bank-account-validation / bank-account-verification.
   'bank_account_valid',
   'bank_account_exists',
@@ -58,16 +86,11 @@ export const REPORT_ATTRIBUTES = [
   // remote-check.
   'remote_check_completed',
   'remote_check_result',
-  // EPIC-7a/7b additions (see lib/reportActions.ts's derivation comment).
+  // EPIC-7a/7b additions still unconfirmed (see lib/reportActions.ts's
+  // derivation comment) — out of scope for the 2026-09-10 capture.
   'nfi_amberhill_match',
-  'nfi_address_match',
   'property_register_match',
-  'ccj_found',
   'insolvency_found',
-  'director_match',
-  'credit_active',
-  'experian_match',
-  'equifax_match',
   'address_insights_stable',
   'address_insights_score',
   'age_verified',

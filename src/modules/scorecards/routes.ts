@@ -6,6 +6,7 @@ import {
   createScorecard,
   deleteScorecard,
   findScorecard,
+  getUsername,
   listScorecards,
   publishScorecard,
   retireScorecard,
@@ -23,7 +24,8 @@ scorecardsRouter.post('/scorecards', async (req, res, next) => {
   }
   try {
     const scorecard = await createScorecard(req.client!.id, parsed.data);
-    res.status(201).json({ data: serializeScorecard(scorecard) });
+    const username = await getUsername(req.client!.id);
+    res.status(201).json({ data: serializeScorecard(scorecard, username) });
   } catch (error) {
     next(error);
   }
@@ -38,9 +40,16 @@ scorecardsRouter.get('/scorecards', async (req, res, next) => {
   try {
     const { page, per_page: perPage } = parsed.data;
     const { items, total } = await listScorecards(req.client!.id, page, perPage);
-    res
-      .status(200)
-      .json(paginate(items.map(serializeScorecard), total, page, perPage, '/scorecards'));
+    const username = await getUsername(req.client!.id);
+    res.status(200).json(
+      paginate(
+        items.map((item) => serializeScorecard(item, username)),
+        total,
+        page,
+        perPage,
+        '/scorecards',
+      ),
+    );
   } catch (error) {
     next(error);
   }
@@ -49,7 +58,8 @@ scorecardsRouter.get('/scorecards', async (req, res, next) => {
 scorecardsRouter.get('/scorecards/:id', async (req, res, next) => {
   try {
     const scorecard = await findScorecard(req.client!.id, req.params.id);
-    res.status(200).json({ data: serializeScorecard(scorecard) });
+    const username = await getUsername(req.client!.id);
+    res.status(200).json({ data: serializeScorecard(scorecard, username) });
   } catch (error) {
     next(error);
   }
@@ -63,7 +73,8 @@ scorecardsRouter.patch('/scorecards/:id', async (req, res, next) => {
   }
   try {
     const scorecard = await updateScorecard(req.client!.id, req.params.id, parsed.data);
-    res.status(200).json({ data: serializeScorecard(scorecard) });
+    const username = await getUsername(req.client!.id);
+    res.status(200).json({ data: serializeScorecard(scorecard, username) });
   } catch (error) {
     next(error);
   }
@@ -82,7 +93,8 @@ scorecardsRouter.delete('/scorecards/:id', async (req, res, next) => {
 scorecardsRouter.post('/scorecards/:id/publish', async (req, res, next) => {
   try {
     const scorecard = await publishScorecard(req.client!.id, req.params.id);
-    res.status(200).json({ data: serializeScorecard(scorecard) });
+    const username = await getUsername(req.client!.id);
+    res.status(200).json({ data: serializeScorecard(scorecard, username) });
   } catch (error) {
     next(error);
   }
@@ -91,7 +103,8 @@ scorecardsRouter.post('/scorecards/:id/publish', async (req, res, next) => {
 scorecardsRouter.post('/scorecards/:id/retire', async (req, res, next) => {
   try {
     const scorecard = await retireScorecard(req.client!.id, req.params.id);
-    res.status(200).json({ data: serializeScorecard(scorecard) });
+    const username = await getUsername(req.client!.id);
+    res.status(200).json({ data: serializeScorecard(scorecard, username) });
   } catch (error) {
     next(error);
   }

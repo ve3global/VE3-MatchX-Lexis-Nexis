@@ -106,15 +106,25 @@ CRUD subscription resource. Rebuilt per `planning/specs/epic-10-webhooks/`
 Doc's action slug is the one that must appear in
 `POST /reports/{reportId}/actions/{slug}` for a real integration to work.
 
-- [ ] `ccj-check` → rename to `ccj-screening`
-- [ ] `director-check` → rename to `company-officer-screening`
-- [ ] `credit-check` → rename to `credit-active`
-- [ ] `insolvency-check` → rename to `insolvency-screening`
-- [ ] Add missing action: `lexid-match` (not implemented at all)
+- [x] `ccj-check` → renamed to `ccj-screening` — fixed 2026-09-10, see below
+- [x] `director-check` → renamed to `company-officer-screening` — fixed
+      2026-09-10, see below
+- [x] `credit-check` → renamed to `credit-active` — fixed 2026-09-10, see
+      below
+- [ ] `insolvency-check` → rename to `insolvency-screening` (not touched by
+      the 2026-09-10 capture — still an unconfirmed guess either way)
+- [x] Add missing action: `lexid-match` — implemented 2026-09-10, see below
 - [ ] Add missing action: `prs-verification` (not implemented at all)
-- [ ] `nfi-address` and `property-register-search` are not in the doc —
-      decide: remove, or keep as labeled replica-only extensions (needs a
+- [x] `nfi-address` — resolved 2026-09-10: retired as a standalone action
+      (see below), not kept as an extension
+- [ ] `property-register-search` is not in the doc — still undecided:
+      remove, or keep as a labeled replica-only extension (needs a
       "Resolved conflicts" entry if kept)
+- [ ] `dob-verification`'s `sources` entries always include `day_match`/
+      `month_match`/`year_match` — no capture (2026-09-10 or the 2026-09-08
+      `pensions.json` one below) ever shows those keys, only `{source,
+      dob_count}`. Drop them, or leave pending a capture that actually
+      shows a `matched: true` example one way or the other.
 
 ## EPIC-4 Reports core — minor filter gap
 
@@ -207,6 +217,104 @@ the source doc are not reproduced here.
   and the field only appears in `context` when `actions` was also given.
   Useful reference for whenever the `context` stub finding below gets
   picked up, but not an action item on its own.
+
+## New finding (2026-09-10, from a live LexisNexis sandbox capture) — `API payload and response.json`
+
+Captured request/response pairs against `POST /oauth/token`, `POST
+/address-lookup`, `POST /reports` (address-verification-scored and
+credit-active-scored), `POST /scorecards`, and `POST
+/reports/{id}/actions/address-verification`. Confirms token/address-lookup
+are already correct (no change needed there — see the 2026-09-03 entry
+above); everything below was fixed the same day, scoped to exactly the
+actions/fields this capture exercises (ticket-by-ticket — the ~20 other
+still-unconfirmed actions from tier 3 of `lib/reportActions.ts`'s
+derivation comment are untouched).
+
+- [x] **`address-verification`'s request is `{config: {full_er, nfi_address}}`,
+  nested — not the flat `{full_er}` guess.** Codes 1160/1257
+  (`config.full_er`/`config.nfi_address`) moved here from
+  `PATCH /users/options`'s own `config` sub-object, which had no real
+  evidence either code belonged to it — see epic-11's spec.md for the
+  fallback code now used there instead.
+- [x] **`address-verification`'s attribute list was a representative
+  subset (9 guessed names) — replaced with the doc-confirmed base set of
+  9 plus a `config.nfi_address`-gated extension of 17 more** (see
+  `lib/reportAttributes.ts`). Response block is now the rich
+  `{verified, address_found, gone_away, date_first_seen, date_last_seen,
+  address, telephones, sources}` shape, not a flat attribute dump.
+- [x] **The standalone `nfi-address` action is retired.** The capture
+  shows `nfi_address` is address-verification's own config flag, not a
+  separate action — resolves the tracker's long-open "decide" item above.
+- [x] **`POST /reports/{id}/actions/address-verification` returns the full
+  report object**, not `{data: {"address-verification": result}}` like
+  every other action — special-cased in `reports/routes.ts` since nothing
+  in this capture (or any prior one) suggests the other 26 actions share
+  this envelope.
+- [x] **`age-verification`, `ccj-screening` (was `ccj-check`),
+  `company-officer-screening` (was `director-check`), `dob-verification`,
+  `credit-active` (was `credit-check`), and the previously-unimplemented
+  `lexid-match`** all get doc-confirmed request/response shapes and
+  (where applicable) renamed scoring attributes — see each module under
+  `src/modules/reports/actions/` and the new entries in
+  `lib/reportAttributes.ts`.
+- [x] **Report `context` only carries `age_min`/`age_max`/`full_er`/
+  `nfi_address` when a relevant action was requested** (address-verification
+  and/or age-verification), not unconditionally — a second capture example
+  (`actions: ["credit-active"]` only) shows a minimal context with none of
+  those four keys. `age_min`/`age_max` echo the report type's own stored
+  range when one exists (report_type_id mode), reconciling this capture's
+  non-null example with the 2026-09-03 capture's null-in-inline-mode one;
+  `full_er`/`nfi_address` echo address-verification's last-used `config`.
+- [x] **`serializeScorecard` was missing a `username` field** — added,
+  sourced from the caller's own `UserProfile` (same auto-create precedent
+  as `users/service.ts#getSelf`).
+- [x] **`credit-active`'s real scored attribute is `credit_lenders`** (a
+  lender count), not the guessed boolean `credit_active` — renamed
+  alongside the action itself.
+
+## New finding (2026-09-08 capture, `pensions.json`) — "pension source" is not a new action
+
+A colleague-supplied local file (`c:\Users\SavanKishorbhaiPadal\Downloads\pensions.json`,
+labeled "PENSION API ENDPOINT") turned out to be the same capture already
+checked in as `MatchX/06-reports-address-verification-action.md` —
+`POST /reports/:id/actions/address-verification` with `config.nfi_address:
+true`. Diffed field-for-field against the current implementation:
+
+- [x] Confirmed **not a separate/pending API** — it's address-verification's
+  existing `config.nfi_address` gating (base 9 + 17 extension attributes,
+  `NFI_PENSIONS`/`NFI_PAYROLL`/`NFI_TRANSPORT_PASS` sources, the rich
+  `lexid_match` shape, the full-report response special-case), all already
+  implemented and matching this file exactly. No new action, route, or
+  module needed — closing this out rather than tracking it as pending work.
+- [x] **New gap this file surfaced: `assessment` shape never matched the
+  doc at all — fixed 2026-09-11.** Doc shape (both this capture and
+  `MatchX/06`): `{scorecard_id, score, result, reasons: [{label,
+  indicator}], score_breakdown: [{group, group_score, rules: [{attribute,
+  score, matched}]}]}`. The engine emitted `{score, result, groups:
+  [{group_name, score, min_score, passed, rules}]}` — an epic-6 design
+  guess that predated any real evidence and was never revisited once
+  captures existed. Fixed in `src/scoring/engine.ts` (dropped `min_score`/
+  `passed`, which the doc never returns — `min_score` stays available via
+  the scorecard's own `groups` config for a caller who needs it). `reasons`
+  labels are doc-confirmed for exactly 4 attributes (`address_verified`,
+  `address_current_er`, `address_historic_er`, `lexid_match`); the rest of
+  the doc's own worked scorecard example (`MatchX/05-scorecards.md`,
+  `credit_lenders`/`address_gone_away_high`/`address_gone_away_very_high`/
+  `company_officer_current`/`company_officer_historic`/
+  `address_tracesmart_register`/`address_companies_house`/
+  `address_insolvency_service`/`address_telephone_directory`/
+  `address_registry_trust`/`ccj`) get a designed-not-transcribed label so a
+  matched rule always has *some* reason text; anything else a scorecard
+  rules on falls back to a humanized attribute name. A matched rule worth
+  0 points is excluded from `reasons` (no capture shows one, and it carries
+  no scoring signal either way). See epic-6-scorecards/spec.md's "Resolved
+  conflicts".
+- [ ] **Separate, not fixed here:** `dob-verification`'s response always
+  includes `day_match`/`month_match`/`year_match` on each `sources` entry,
+  but neither this capture nor the 2026-09-10 one ever shows those keys —
+  only `{source, dob_count}`. The code comment's "shape confirmed" claim
+  overstates what's actually evidenced. Filed as its own item under
+  EPIC-7a/7b/7c above; not touched in this pass.
 
 ## Confirmed solid, no action needed
 

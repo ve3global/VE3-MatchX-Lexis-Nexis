@@ -169,7 +169,7 @@ const FOLDERS: FolderSpec[] = [
   {
     name: 'Run 1 - Happy Path (Demo)',
     description:
-      'Clean end-to-end walkthrough, zero errors by design: auth, address lookup, scorecard + report type setup, a report that auto-completes and self-scores, an individually-run action (credit-check), and its audit trail. Standalone — acquires its own token, safe to run on its own.',
+      'Clean end-to-end walkthrough, zero errors by design: auth, address lookup, scorecard + report type setup, a report that auto-completes and self-scores, an individually-run action (credit-active), and its audit trail. Standalone — acquires its own token, safe to run on its own.',
     items: [
       {
         name: 'POST /oauth/token',
@@ -237,14 +237,11 @@ const FOLDERS: FolderSpec[] = [
         tests: [statusTest(200)],
       },
       {
-        name: 'POST /reports/{id}/actions/credit-check — run individually',
+        name: 'POST /reports/{id}/actions/credit-active — run individually',
         method: 'POST',
-        path: '/reports/{{demo_report_id}}/actions/credit-check',
+        path: '/reports/{{demo_report_id}}/actions/credit-active',
         body: {},
-        tests: [
-          statusTest(200),
-          fieldDefinedTest('credit_active present', 'data.credit-check.credit_active'),
-        ],
+        tests: [statusTest(200), fieldDefinedTest('matched present', 'data.credit_active.matched')],
       },
       {
         name: 'GET /reports/{id}/audit — full trail',
@@ -352,9 +349,9 @@ const FOLDERS: FolderSpec[] = [
         tests: [statusTest(422), errorCodeTest('code 1171', 'groups.0.rules.0.attribute', 1171)],
       },
       {
-        name: 'POST /reports/{id}/actions/credit-check — unknown report id (404)',
+        name: 'POST /reports/{id}/actions/credit-active — unknown report id (404)',
         method: 'POST',
-        path: '/reports/00000000-0000-0000-0000-000000000000/actions/credit-check',
+        path: '/reports/00000000-0000-0000-0000-000000000000/actions/credit-active',
         body: {},
         tests: [statusTest(404)],
       },
@@ -818,7 +815,7 @@ const FOLDERS: FolderSpec[] = [
         body: {},
         tests: [
           statusTest(200),
-          fieldDefinedTest('dob_verified present', 'data.dob-verification.dob_verified'),
+          fieldDefinedTest('matched present', 'data.dob_verification.matched'),
         ],
       },
       {

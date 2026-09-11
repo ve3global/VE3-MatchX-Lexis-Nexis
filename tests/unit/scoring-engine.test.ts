@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { evaluateScorecard, type ScorecardInput } from '../../src/scoring/engine.js';
 
 const AML_SCORECARD: ScorecardInput = {
+  id: 'aml-scorecard',
   passThreshold: 80,
   failThreshold: 40,
   groups: [
@@ -25,7 +26,7 @@ const AML_SCORECARD: ScorecardInput = {
 };
 
 describe('evaluateScorecard', () => {
-  it('sums each group score from its rules and flags passed via min_score', () => {
+  it('sums each group score from its rules, keyed by scorecard_id', () => {
     const assessment = evaluateScorecard(AML_SCORECARD, {
       address_verified: true,
       dob_count: 1,
@@ -33,22 +34,19 @@ describe('evaluateScorecard', () => {
       pep: false,
     });
 
-    expect(assessment.groups).toEqual([
+    expect(assessment.scorecard_id).toBe('aml-scorecard');
+    expect(assessment.score_breakdown).toEqual([
       {
-        group_name: 'identity',
-        score: 60,
-        min_score: 50,
-        passed: true,
+        group: 'identity',
+        group_score: 60,
         rules: [
           { attribute: 'address_verified', matched: true, score: 30 },
           { attribute: 'dob_count', matched: true, score: 30 },
         ],
       },
       {
-        group_name: 'screening',
-        score: 40,
-        min_score: 50,
-        passed: false,
+        group: 'screening',
+        group_score: 40,
         rules: [
           { attribute: 'sanction', matched: false, score: 20 },
           { attribute: 'pep', matched: false, score: 20 },
@@ -81,6 +79,7 @@ describe('evaluateScorecard', () => {
 
   it('returns REFER when the score is between the thresholds', () => {
     const scorecard: ScorecardInput = {
+      id: 'refer-scorecard',
       passThreshold: 80,
       failThreshold: 40,
       groups: [
@@ -98,7 +97,7 @@ describe('evaluateScorecard', () => {
 
   it('treats a missing attribute as not-matched rather than throwing', () => {
     const assessment = evaluateScorecard(AML_SCORECARD, {});
-    expect(assessment.groups[0].rules[0]).toEqual({
+    expect(assessment.score_breakdown[0].rules[0]).toEqual({
       attribute: 'address_verified',
       matched: false,
       score: -30,
@@ -107,10 +106,64 @@ describe('evaluateScorecard', () => {
 
   it('never triggers a null threshold branch', () => {
     const assessment = evaluateScorecard(
-      { passThreshold: null, failThreshold: null, groups: [] },
+      { id: 'empty-scorecard', passThreshold: null, failThreshold: null, groups: [] },
       {},
     );
     expect(assessment.score).toBe(0);
     expect(assessment.result).toBe('REFER');
+  });
+
+  it('emits a reasons entry for every matched, nonzero-score rule, in group/rule order', () => {
+    const assessment = evaluateScorecard(AML_SCORECARD, {
+      address_verified: true,
+      dob_count: 1,
+      sanction: true,
+      pep: false,
+    });
+    expect(assessment.reasons).toEqual([
+      { label: 'Address verified', indicator: 'POSITIVE' },
+      { label: 'Dob count', indicator: 'POSITIVE' },
+      { label: expect.any(String), indicator: 'NEGATIVE' },
+    ]);
+  });
+
+  it('omits a matched rule worth zero points from reasons', () => {
+    const scorecard: ScorecardInput = {
+      id: 'zero-score-scorecard',
+      passThreshold: null,
+      failThreshold: null,
+      groups: [
+        {
+          group_name: 'bonus',
+          min_score: 0,
+          rules: [{ attribute: 'ccj', match_score: 0, no_match_score: 0 }],
+        },
+      ],
+    };
+    const assessment = evaluateScorecard(scorecard, { ccj: true });
+    expect(assessment.reasons).toEqual([]);
+  });
+
+  it('uses the doc-confirmed label for a known attribute and a humanized fallback for an unknown one', () => {
+    const scorecard: ScorecardInput = {
+      id: 'label-scorecard',
+      passThreshold: null,
+      failThreshold: null,
+      groups: [
+        {
+          group_name: 'g',
+          min_score: 0,
+          rules: [
+            { attribute: 'lexid_match', match_score: 5, no_match_score: 0 },
+            { attribute: 'phone_match', match_score: 5, no_match_score: 0 },
+          ],
+        },
+      ],
+    };
+    const assessment = evaluateScorecard(scorecard, { lexid_match: true, phone_match: true });
+    expect(assessment.reasons).toEqual([
+      { label: 'LexID has been validated against input data', indicator: 'POSITIVE' },
+      { label: 'Phone match', indicator: 'POSITIVE' },
+    ]);
   });
 });

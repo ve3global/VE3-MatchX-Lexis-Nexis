@@ -1,10 +1,15 @@
 import { addressVerification } from './addressVerification.js';
+import { ageVerification } from './ageVerification.js';
 import { bankAccountValidation } from './bankAccountValidation.js';
 import { bankAccountVerification } from './bankAccountVerification.js';
+import { ccjScreening } from './ccjScreening.js';
+import { companyOfficerScreening } from './companyOfficerScreening.js';
+import { creditActive } from './creditActive.js';
 import { deathScreening } from './deathScreening.js';
 import { dobVerification } from './dobVerification.js';
 import { drivingLicenceValidation } from './drivingLicenceValidation.js';
 import { emailRisk } from './emailRisk.js';
+import { lexidMatch } from './lexidMatch.js';
 import { niNumberValidation } from './niNumberValidation.js';
 import { otpEmail } from './otpEmail.js';
 import { otpEmailVerification } from './otpEmailVerification.js';
@@ -26,6 +31,11 @@ import type { ActionModule } from './types.js';
  */
 export const ACTION_REGISTRY: Partial<Record<string, ActionModule>> = {
   'address-verification': addressVerification,
+  'age-verification': ageVerification,
+  'ccj-screening': ccjScreening,
+  'company-officer-screening': companyOfficerScreening,
+  'credit-active': creditActive,
+  'lexid-match': lexidMatch,
   'dob-verification': dobVerification,
   'death-screening': deathScreening,
   'bank-account-validation': bankAccountValidation,
