@@ -4,7 +4,8 @@ import { prisma } from '../../lib/prisma.js';
 import { singleFieldError } from '../../lib/validation.js';
 import type { CreateScorecardRequest, UpdateScorecardRequest } from './schema.js';
 
-export function serializeScorecard(scorecard: Scorecard) {
+/** `username` confirmed by a live sandbox capture (2026-09-10, planning/api-drift-remediation.md) — the caller's own profile username, not previously modeled here. */
+export function serializeScorecard(scorecard: Scorecard, username: string | null) {
   return {
     id: scorecard.id,
     name: scorecard.name,
@@ -13,9 +14,20 @@ export function serializeScorecard(scorecard: Scorecard) {
     groups: scorecard.groups,
     status: scorecard.status,
     version: scorecard.version,
+    username,
     created_at: scorecard.createdAt.toISOString(),
     updated_at: scorecard.updatedAt.toISOString(),
   };
+}
+
+/** Auto-created on first access, same precedent as users/service.ts#getSelf. */
+export async function getUsername(clientId: string): Promise<string | null> {
+  const profile = await prisma.userProfile.upsert({
+    where: { clientId },
+    update: {},
+    create: { clientId },
+  });
+  return profile.username;
 }
 
 async function assertNameAvailable(

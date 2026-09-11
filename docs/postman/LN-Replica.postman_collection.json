@@ -25,7 +25,7 @@
   "item": [
     {
       "name": "Run 1 - Happy Path (Demo)",
-      "description": "Clean end-to-end walkthrough, zero errors by design: auth, address lookup, scorecard + report type setup, a report that auto-completes and self-scores, an individually-run action (credit-check), and its audit trail. Standalone — acquires its own token, safe to run on its own.",
+      "description": "Clean end-to-end walkthrough, zero errors by design: auth, address lookup, scorecard + report type setup, a report that auto-completes and self-scores, an individually-run action (credit-active), and its audit trail. Standalone — acquires its own token, safe to run on its own.",
       "item": [
         {
           "name": "POST /oauth/token",
@@ -214,7 +214,7 @@
           ]
         },
         {
-          "name": "POST /reports/{id}/actions/credit-check — run individually",
+          "name": "POST /reports/{id}/actions/credit-active — run individually",
           "request": {
             "method": "POST",
             "header": [
@@ -227,7 +227,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/lexis-nexis/reports/{{demo_report_id}}/actions/credit-check",
+            "url": "{{base_url}}/lexis-nexis/reports/{{demo_report_id}}/actions/credit-active",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -240,7 +240,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('credit_active present', () => pm.expect(pm.response.json()[\"data\"][\"credit-check\"][\"credit_active\"]).to.not.be.undefined);"
+                  "pm.test('matched present', () => pm.expect(pm.response.json()[\"data\"][\"credit_active\"][\"matched\"]).to.not.be.undefined);"
                 ]
               }
             }
@@ -1031,7 +1031,7 @@
           ]
         },
         {
-          "name": "POST /reports/{id}/actions/credit-check — unknown report id (404)",
+          "name": "POST /reports/{id}/actions/credit-active — unknown report id (404)",
           "request": {
             "method": "POST",
             "header": [
@@ -1044,7 +1044,7 @@
                 "value": "Bearer {{access_token}}"
               }
             ],
-            "url": "{{base_url}}/lexis-nexis/reports/00000000-0000-0000-0000-000000000000/actions/credit-check",
+            "url": "{{base_url}}/lexis-nexis/reports/00000000-0000-0000-0000-000000000000/actions/credit-active",
             "body": {
               "mode": "raw",
               "raw": "{}"
@@ -2385,7 +2385,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('dob_verified present', () => pm.expect(pm.response.json()[\"data\"][\"dob-verification\"][\"dob_verified\"]).to.not.be.undefined);"
+                  "pm.test('matched present', () => pm.expect(pm.response.json()[\"data\"][\"dob_verification\"][\"matched\"]).to.not.be.undefined);"
                 ]
               }
             }

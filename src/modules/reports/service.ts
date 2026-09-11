@@ -3,6 +3,7 @@ import type {
   RemoteCheckTransaction,
   Report,
   ReportActionResult,
+  ReportType,
   Scorecard,
 } from '@prisma/client';
 import { chance, seedFrom, subSeed } from '../../lib/determinism.js';
@@ -19,6 +20,7 @@ import type { CreateReportRequest } from './schema.js';
 
 type ReportWithRelations = Report & {
   scorecard: Scorecard | null;
+  reportType: ReportType | null;
   actionResults: ReportActionResult[];
 };
 
@@ -36,13 +38,69 @@ function subjectSeed(subject: ActionSubject): number {
   );
 }
 
+/**
+ * Response keys for the action blocks a live sandbox capture (2026-09-10,
+ * planning/api-drift-remediation.md) actually confirmed use the action's
+ * name with underscores (`address_verification`, not `address-verification`)
+ * — every other action keeps its raw kebab-case slug as the key, since
+ * there's no evidence either way for it yet.
+ */
+const SNAKE_CASE_ACTION_KEYS = new Set([
+  'address-verification',
+  'age-verification',
+  'ccj-screening',
+  'company-officer-screening',
+  'dob-verification',
+  'credit-active',
+  'lexid-match',
+]);
+
+export function toResponseKey(actionName: string): string {
+  return SNAKE_CASE_ACTION_KEYS.has(actionName) ? actionName.replace(/-/g, '_') : actionName;
+}
+
 export function serializeReport(report: ReportWithRelations) {
+  const subject: ActionSubject = {
+    forename: report.forename,
+    middlename: report.middlename,
+    surname: report.surname,
+    dob: dateOnly(report.dob),
+    address: report.address as ActionSubject['address'],
+  };
+  const seed = subjectSeed(subject);
+
   const attributes: Record<string, unknown> = {};
   const actionsOutput: Record<string, unknown> = {};
+  const priorResults: Record<string, Record<string, unknown>> = {};
   for (const result of report.actionResults) {
-    actionsOutput[result.actionName] = result.resultPayload;
-    if (typeof result.resultPayload === 'object' && result.resultPayload !== null) {
-      Object.assign(attributes, result.resultPayload as Record<string, unknown>);
+    priorResults[result.actionName] = result.resultPayload as Record<string, unknown>;
+  }
+
+  let addressVerificationResult: ReportActionResult | undefined;
+  let hasAgeGatingAction = false;
+  for (const result of report.actionResults) {
+    const resultAttributes = result.resultPayload as Record<string, unknown>;
+    Object.assign(attributes, resultAttributes);
+
+    const module = ACTION_REGISTRY[result.actionName];
+    const responseBlock = module?.buildResponse
+      ? module.buildResponse(
+          {
+            subject,
+            requestBody: result.requestPayload as Record<string, unknown>,
+            seed,
+            priorResults,
+          },
+          resultAttributes,
+        )
+      : result.resultPayload;
+    actionsOutput[toResponseKey(result.actionName)] = responseBlock;
+
+    if (result.actionName === 'address-verification') {
+      addressVerificationResult = result;
+    }
+    if (result.actionName === 'address-verification' || result.actionName === 'age-verification') {
+      hasAgeGatingAction = true;
     }
   }
 
@@ -50,6 +108,7 @@ export function serializeReport(report: ReportWithRelations) {
     report.scorecardId && report.scorecard
       ? evaluateScorecard(
           {
+            id: report.scorecardId,
             passThreshold: report.scorecard.passThreshold,
             failThreshold: report.scorecard.failThreshold,
             groups: report.scorecard.groups as unknown as ScoreGroup[],
@@ -57,6 +116,33 @@ export function serializeReport(report: ReportWithRelations) {
           attributes,
         )
       : null;
+
+  // Shape confirmed by two live sandbox captures (2026-09-03 and
+  // 2026-09-10, planning/api-drift-remediation.md's dated entries).
+  // `age_min`/`age_max` only appear when address-verification or
+  // age-verification was requested, echoing the report type's own stored
+  // range (this replica's only real age-gating concept) rather than the
+  // inline `age_min`/`age_max` fields, which aren't applied to anything
+  // (same honest-gap precedent as EPIC-4's `uklexid` filter) — hence
+  // `null` for inline-mode reports, confirmed by the 2026-09-03 capture.
+  // `full_er`/`nfi_address` only appear once address-verification has
+  // run, echoing the config it was last called with.
+  const context: Record<string, unknown> = {
+    reference: report.reference,
+    enduser_agreement: report.enduserAgreement,
+    scorecard_id: report.scorecardId,
+  };
+  if (hasAgeGatingAction) {
+    context.age_min = report.reportType?.ageMin ?? null;
+    context.age_max = report.reportType?.ageMax ?? null;
+  }
+  if (addressVerificationResult) {
+    const config =
+      (addressVerificationResult.requestPayload as { config?: Record<string, unknown> }).config ??
+      {};
+    context.full_er = config.full_er ?? false;
+    context.nfi_address = config.nfi_address ?? false;
+  }
 
   return {
     id: report.id,
@@ -73,21 +159,7 @@ export function serializeReport(report: ReportWithRelations) {
     // Minimal doc-shaped stub — no users/webhooks data exists in phase 1
     // (see planning/constitution.md's phase-2 deferral list).
     user: {},
-    // Shape confirmed by a live sandbox capture (2026-09-03,
-    // planning/api-drift-remediation.md). `age_min`/`age_max` come back
-    // null there even when submitted — this replica has no report-level
-    // age-gating concept (same honest-gap precedent as EPIC-4's `uklexid`
-    // filter), so they're always null rather than echoing an input that
-    // isn't actually applied. `full_er`/`nfi_address` aren't populated yet
-    // (out of scope — they depend on wiring epic-7a's `full_er` action
-    // flag and an `nfi-address` action result through to this object).
-    context: {
-      reference: report.reference,
-      enduser_agreement: report.enduserAgreement,
-      scorecard_id: report.scorecardId,
-      age_min: null,
-      age_max: null,
-    },
+    context,
     annotations: {},
     assessment,
     attributes,
@@ -228,7 +300,7 @@ async function findReportRow(
 ): Promise<ReportWithRelations> {
   const report = await prisma.report.findUnique({
     where: { id },
-    include: { scorecard: true, actionResults: true },
+    include: { scorecard: true, reportType: true, actionResults: true },
   });
   if (!report || report.clientId !== clientId || (!options.includeDeleted && report.deletedAt)) {
     throw new ApiError(404, { message: 'Not found' });
@@ -292,7 +364,7 @@ export async function listReports(
   const [items, total] = await Promise.all([
     prisma.report.findMany({
       where,
-      include: { scorecard: true, actionResults: true },
+      include: { scorecard: true, reportType: true, actionResults: true },
       orderBy: { createdAt: 'asc' },
       skip: (page - 1) * perPage,
       take: perPage,
@@ -456,10 +528,11 @@ export async function runAction(
     priorResults[result.actionName] = result.resultPayload as Record<string, unknown>;
   }
 
+  const actionSeed = subjectSeed(subject);
   const resultPayload = module.build({
     subject,
     requestBody: parsed.data,
-    seed: subjectSeed(subject),
+    seed: actionSeed,
     priorResults,
   });
 
@@ -484,7 +557,14 @@ export async function runAction(
 
   await recomputeStatus(reportId);
 
-  return resultPayload;
+  // Mirrors serializeReport's own choice of block for this action — the
+  // immediate run response and the report's later GET view always agree.
+  return module.buildResponse
+    ? module.buildResponse(
+        { subject, requestBody: parsed.data, seed: actionSeed, priorResults },
+        resultPayload,
+      )
+    : resultPayload;
 }
 
 /**

@@ -121,10 +121,17 @@ export const OPTIONS_ERROR_CODES: FieldErrorCodeMap = {
   phone_number_validation: { string: 1302 },
   bankaccount: { string: 1099 },
   credit_activity: { string: 1048 },
-  'config.full_er': { string: 1160 },
+  // 1160/1257 ("config.full_er"/"config.nfi_address" must be true or
+  // false) moved to the address-verification report action per a live
+  // sandbox capture (2026-09-10, planning/api-drift-remediation.md) — the
+  // only real evidence either code was ever confirmed against. This
+  // endpoint's own `config.full_er`/`config.nfi_address` fields have no
+  // dedicated code of their own, so they fall back to the generic 1319,
+  // same precedent as this file's other undocumented-condition fields.
+  'config.full_er': { string: 1319 },
   'config.age_min': { string: 1205, min: 1193, max: 1194, custom: 1197 },
   'config.age_max': { string: 1206, min: 1195, max: 1196 },
-  'config.nfi_address': { string: 1257 },
+  'config.nfi_address': { string: 1319 },
   bridger_client_id: { string: 1328, max: 1329 },
   bridger_client_secret: { string: 1330, max: 1331, min: 1337 },
   bridger_predefined_search: { string: 1332, max: 1333 },

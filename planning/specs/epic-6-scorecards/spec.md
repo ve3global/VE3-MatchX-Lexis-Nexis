@@ -79,9 +79,12 @@ doc-vs-ticket precedence rule.
 - `scoring/engine.ts` exports a pure `evaluateScorecard(scorecard,
   attributes)` function: per-group score (sum of each rule's
   `match_score`/`no_match_score` depending on whether the report's
-  attribute value is truthy) vs. `min_score`; overall score vs.
-  `pass_threshold`/`fail_threshold` → `{score, result: PASS|REFER|FAIL,
-  groups: [...]}`
+  attribute value is truthy); overall score vs. `pass_threshold`/
+  `fail_threshold` → doc-confirmed shape (2026-09-08/09-10 captures,
+  `planning/api-drift-remediation.md`): `{scorecard_id, score, result:
+  PASS|REFER|FAIL, reasons: [{label, indicator: POSITIVE|NEGATIVE}],
+  score_breakdown: [{group, group_score, rules: [{attribute, matched,
+  score}]}]}`
 - Deterministic and side-effect-free — same scorecard + same attributes
   always produces the same assessment; no report/HTTP wiring yet (that's
   EPIC-4's concern, once reports exist to run it against)
@@ -125,6 +128,32 @@ summarized for this epic:
   Matches the existing EPIC-1 seed scorecard's own shape
   (`sanction: {match_score: -100, no_match_score: 20}` — sanction *present*
   is bad, scored accordingly).
+- **Assessment shape was a pre-capture design guess — fixed 2026-09-11.**
+  `evaluateScorecard()` originally returned `{score, result, groups:
+  [{group_name, score, min_score, passed, rules}]}`, invented before any
+  real evidence existed. Two live captures (2026-09-08's `pensions.json`/
+  `MatchX/06-reports-address-verification-action.md`, and 2026-09-10's
+  `API payload and response.json`) show `{scorecard_id, score, result,
+  reasons: [{label, indicator}], score_breakdown: [{group, group_score,
+  rules}]}` instead — `min_score` and `passed` never appear in the doc's
+  response (only in the create-scorecard request), so they're dropped from
+  the assessment rather than kept as an extension; a caller who needs a
+  group's `min_score` can still read it off the scorecard's own `groups`
+  config. `reasons` labels are doc-confirmed for exactly 4 attributes
+  (`address_verified`, `address_current_er`, `address_historic_er`,
+  `lexid_match`); the rest of the doc's own worked scorecard example
+  (`MatchX/05-scorecards.md`'s `credit_lenders`/`address_gone_away_high`/
+  `address_gone_away_very_high`/`company_officer_current`/
+  `company_officer_historic`/`address_tracesmart_register`/
+  `address_companies_house`/`address_insolvency_service`/
+  `address_telephone_directory`/`address_registry_trust`/`ccj`) get a
+  designed-not-transcribed label so a matched rule always has *some*
+  reason text; any other scorable attribute falls back to a humanized
+  attribute name. No capture shows a matched rule worth exactly 0 points,
+  or a matched rule with a negative `match_score` (a "bad" signal actually
+  firing) — the former is excluded from `reasons` (no scoring signal
+  either way), the latter is included with `"indicator": "NEGATIVE"`
+  (both designed extensions of the same pattern, not directly evidenced).
 - **Attribute enum is provisional (8 of ~55 confirmed).** Same "grows,
   never shrinks" note as EPIC-5's action-name enum — see
   [lib/reportAttributes.ts](../../../src/lib/reportAttributes.ts).

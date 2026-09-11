@@ -5,7 +5,7 @@ import type { RefinementCtx } from 'zod';
  * actions", 27 entries). Every name here traces to real evidence, not
  * invention — see
  * planning/specs/epic-7a-identity-address-actions/spec.md's "Resolved
- * conflicts" for the full derivation. Three tiers:
+ * conflicts" for the full derivation. Four tiers:
  *
  * 1. The 15 EPIC-7c actions — doc-derived, explicitly listed in
  *    constitution.md's ticket → epic map (no ticket number, confirmed
@@ -13,8 +13,8 @@ import type { RefinementCtx } from 'zod';
  * 2. The 4 EPIC-1-seeded actions — address-verification, dob-verification,
  *    sanction-screening, pep-screening — used by the seed scorecard since
  *    EPIC-1, predating this file.
- * 3. 8 more, one per remaining EPIC-7a/7b ticket (LN32-36/39,
- *    LN43-46/48/49), each justified by a specific `lib/errorCodes.ts`
+ * 3. 5 more, one per remaining EPIC-7a/7b ticket (LN36/39,
+ *    LN43-44/46), each justified by a specific `lib/errorCodes.ts`
  *    entry matching the doc's own "`<name>` field must be true or false"
  *    action-enablement-toggle pattern (the same pattern that already
  *    confirms bank_account_validation/driving_licence_validation/
@@ -22,22 +22,39 @@ import type { RefinementCtx } from 'zod';
  *    otp_sms/phone_match/phone_number_validation/remote_check/
  *    nfi_amberhill/sanction/pep/death as action names):
  *      - `address_insights` (code 1180) → address-insights
- *      - `age` (code 1120) → age-verification
- *      - `nfi_address` (code 1253, distinct from nfi_amberhill/1254) → nfi-address
  *      - `property_register_search` (code 1266) → property-register-search
- *      - `ccj` (code 1057) → ccj-check
  *      - `insolvency` (code 1058) → insolvency-check
- *      - `director` (code 1076) → director-check
- *      - `experian`/`equifax`/`credit_activity`/`credit_active_mode`/
- *        `credit_active_primary` (codes 1074/1075/1048/1082/1083) →
- *        bundled into one credit-check action, matching how real UK
- *        bureau-aggregator checks (Experian/Equifax + CCJ/insolvency +
- *        director search) are typically offered as one product
  *
- * Exact request/response field shapes beyond what a ticket/error-code
- * confirms are this replica's own reasonable design — flagged per-module
- * in modules/reports/actions/, same "designed, not transcribed" practice
- * as EPIC-3's address-lookup response shape.
+ * 4. 7 actions whose real request/response shape is now confirmed by a
+ *    live sandbox capture (2026-09-10, `planning/api-drift-remediation.md`),
+ *    superseding the bare error-code-toggle guesses tier 3 above still
+ *    uses for everything *not* in this capture:
+ *      - `age-verification` — `age` toggle (code 1120), shape confirmed
+ *      - `ccj-screening` — renamed from the guessed `ccj-check` slug
+ *        (code 1057's field is `ccj`, matching the doc's own action-name
+ *        convention better than "-check")
+ *      - `company-officer-screening` — renamed from the guessed
+ *        `director-check` slug (code 1076's field is `director`, but the
+ *        capture's response key is `company_officer_screening`)
+ *      - `credit-active` — renamed from the guessed `credit-check` slug;
+ *        still one bundled action (see tier 3's `experian`/`equifax`/
+ *        `credit_activity` derivation above), the capture's own action
+ *        name is `credit-active`
+ *      - `lexid-match` — previously unimplemented; the capture's
+ *        `lexid_match` response block confirms both the name and shape
+ *      - `address-verification` — shape confirmed (nested `config`
+ *        request, rich response block, ~26 doc-confirmed attributes)
+ *      - `dob-verification` — shape confirmed (`matched`/`sources`, not
+ *        the old flat `dob_verified`/`dob_count` guess)
+ *    The standalone `nfi-address` action (tier 3, code 1253) is retired:
+ *    the capture shows `nfi_address` is address-verification's own
+ *    `config.nfi_address` toggle, not a separate action (see
+ *    api-drift-remediation.md's 2026-09-10 entry).
+ *
+ * Exact request/response field shapes beyond what a ticket/error-code/
+ * capture confirms are this replica's own reasonable design — flagged
+ * per-module in modules/reports/actions/, same "designed, not
+ * transcribed" practice as EPIC-3's address-lookup response shape.
  */
 export const REPORT_ACTIONS = [
   'address-verification',
@@ -61,12 +78,12 @@ export const REPORT_ACTIONS = [
   'remote-check',
   'address-insights',
   'age-verification',
-  'nfi-address',
   'property-register-search',
-  'ccj-check',
+  'ccj-screening',
   'insolvency-check',
-  'director-check',
-  'credit-check',
+  'company-officer-screening',
+  'credit-active',
+  'lexid-match',
 ] as const;
 
 export type ReportAction = (typeof REPORT_ACTIONS)[number];

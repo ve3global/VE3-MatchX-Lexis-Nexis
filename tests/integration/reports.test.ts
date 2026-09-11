@@ -220,8 +220,14 @@ describe('reports', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.data.status).toBe('COMPLETE');
-    expect(res.body.data['address-verification']).toHaveProperty('address_verified');
+    expect(res.body.data.address_verification).toHaveProperty('verified');
     expect(res.body.data.attributes).toHaveProperty('address_verified');
+    expect(res.body.data.context).toMatchObject({
+      age_min: null,
+      age_max: null,
+      full_er: false,
+      nfi_address: false,
+    });
   });
 
   it('stays STARTED for a primary action needing input the create-report request never collects', async () => {
@@ -303,9 +309,11 @@ describe('reports', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.data.assessment).toEqual({
+      scorecard_id: scorecardRes.body.data.id,
       score: -30,
       result: 'FAIL',
-      groups: expect.any(Array),
+      reasons: [],
+      score_breakdown: expect.any(Array),
     });
   });
 
@@ -431,7 +439,7 @@ describe('reports', () => {
     ]);
   });
 
-  it('returns the context object with reference/enduser_agreement/scorecard_id (age_min/age_max always null)', async () => {
+  it('returns a minimal context object when no address/age-verification action was requested', async () => {
     const res = await request(app)
       .post('/lexis-nexis/reports')
       .set(authed())
@@ -442,8 +450,21 @@ describe('reports', () => {
       reference: 'ctx-ref-1',
       enduser_agreement: true,
       scorecard_id: null,
+    });
+  });
+
+  it('adds age_min/age_max to context once address/age-verification is requested (always null in inline mode)', async () => {
+    const res = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send({ ...validInline, actions: ['address-verification'] });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.context).toMatchObject({
       age_min: null,
       age_max: null,
+      full_er: false,
+      nfi_address: false,
     });
   });
 
@@ -459,7 +480,7 @@ describe('reports', () => {
           {
             group_name: 'credit',
             min_score: 0,
-            rules: [{ attribute: 'credit_active', match_score: 30, no_match_score: -30 }],
+            rules: [{ attribute: 'credit_lenders', match_score: 30, no_match_score: -30 }],
           },
         ],
       });
@@ -470,14 +491,14 @@ describe('reports', () => {
       .send({
         ...validInline,
         scorecard_id: scorecardRes.body.data.id,
-        actions: ['credit-check'],
+        actions: ['credit-active'],
       });
 
     expect(res.status).toBe(201);
     expect(res.body.data.status).toBe('COMPLETE');
     expect(res.body.data.context.scorecard_id).toBe(scorecardRes.body.data.id);
     expect(res.body.data.assessment).toMatchObject({ result: expect.any(String) });
-    expect(res.body.data['credit-check']).toBeDefined();
+    expect(res.body.data.credit_active).toBeDefined();
   });
 
   it('stays STARTED when an inline action needs input the create-report request never collects', async () => {
@@ -537,7 +558,7 @@ describe('reports', () => {
     const res = await request(app)
       .post('/lexis-nexis/reports')
       .set(authed())
-      .send({ ...validInline, actions: ['credit-check', 'credit-check'] });
+      .send({ ...validInline, actions: ['credit-active', 'credit-active'] });
 
     expect(res.status).toBe(422);
     expect(res.body.errors.actions.map((e: { code: number }) => e.code)).toContain(1319);
@@ -564,7 +585,7 @@ describe('reports', () => {
       .set(authed())
       .send({
         report_type_id: reportTypeRes.body.data.id,
-        actions: ['credit-check'],
+        actions: ['credit-active'],
         age_min: 18,
       });
 

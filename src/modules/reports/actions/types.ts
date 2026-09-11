@@ -22,5 +22,17 @@ export interface ActionContext {
 export interface ActionModule {
   schema: ZodTypeAny;
   errorCodes: FieldErrorCodeMap;
+  /** The flat, score-relevant attributes this action contributes (merged into the report's `attributes` bag). */
   build: (ctx: ActionContext) => Record<string, unknown>;
+  /**
+   * Optional doc-confirmed response envelope, richer than the flat
+   * `build` attributes (e.g. address-verification's nested `address`/
+   * `sources` block, or dob-verification's `matched`/`sources` shape).
+   * Falls back to `build`'s own return value when absent — every action
+   * without direct evidence of a richer response shape.
+   */
+  buildResponse?: (
+    ctx: ActionContext,
+    attributes: Record<string, unknown>,
+  ) => Record<string, unknown>;
 }

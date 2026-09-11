@@ -70,11 +70,11 @@ describe('report actions', () => {
       .set(authed())
       .send({});
     expect(runRes.status).toBe(200);
-    expect(runRes.body.data['dob-verification']).toHaveProperty('dob_verified');
+    expect(runRes.body.data.dob_verification).toHaveProperty('matched');
 
     const getRes = await request(app).get(`/lexis-nexis/reports/${id}`).set(authed());
-    expect(getRes.body.data['dob-verification']).toEqual(runRes.body.data['dob-verification']);
-    expect(getRes.body.data.attributes).toMatchObject(runRes.body.data['dob-verification']);
+    expect(getRes.body.data.dob_verification).toEqual(runRes.body.data.dob_verification);
+    expect(getRes.body.data.attributes).toHaveProperty('dob_count');
   });
 
   it('returns identical results for the same subject across separate reports (determinism)', async () => {
@@ -90,7 +90,8 @@ describe('report actions', () => {
       .set(authed())
       .send({});
 
-    expect(res1.body.data).toEqual(res2.body.data);
+    expect(res1.body.data.address_verification).toEqual(res2.body.data.address_verification);
+    expect(res1.body.data.attributes).toEqual(res2.body.data.attributes);
   });
 
   it('rejects a malformed request body with the action-specific error code', async () => {

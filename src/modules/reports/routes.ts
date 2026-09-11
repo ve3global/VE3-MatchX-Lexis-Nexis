@@ -20,6 +20,7 @@ import {
   resendRemoteCheck,
   runAction,
   serializeReport,
+  toResponseKey,
 } from './service.js';
 
 export const reportsRouter = Router();
@@ -96,10 +97,21 @@ reportsRouter.get('/reports/:id/input-data', async (req, res, next) => {
 });
 
 // EPIC-7: runs one action module against an existing report.
+//
+// `address-verification` is special-cased per a live sandbox capture
+// (2026-09-10, planning/api-drift-remediation.md): its response is the
+// full, freshly re-scored report object, not just `{data: {"<action>":
+// result}}` like every other action here — no evidence yet that this
+// generalizes to the other 26 actions, so only this one deviates.
 reportsRouter.post('/reports/:id/actions/:action', async (req, res, next) => {
   try {
     const result = await runAction(req.client!.id, req.params.id, req.params.action, req.body);
-    res.status(200).json({ data: { [req.params.action]: result } });
+    if (req.params.action === 'address-verification') {
+      const report = await findReport(req.client!.id, req.params.id);
+      res.status(200).json({ data: serializeReport(report) });
+      return;
+    }
+    res.status(200).json({ data: { [toResponseKey(req.params.action)]: result } });
   } catch (error) {
     next(error);
   }
