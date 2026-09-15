@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { FieldErrorCodeMap } from '../../lib/validation.js';
-import { validateAgeRange } from '../../lib/validation.js';
+import { emptyToUndefined, validateAgeRange } from '../../lib/validation.js';
 import { validateActionList } from '../../lib/reportActions.js';
 
 const INLINE_FIELDS = [
@@ -38,10 +38,16 @@ const NAME_RE = /^\p{L}+(?:['\- ]\p{L}+)*$/u;
 export const createReportSchema = z
   .object({
     report_type_id: z.string().uuid().optional(),
-    forename: z.string().max(64).regex(NAME_RE).optional(),
-    middlename: z.string().max(64).regex(NAME_RE).optional(),
-    surname: z.string().max(64).regex(NAME_RE).optional(),
-    dob: z.string().optional(),
+    // "" is treated as not-provided for these four (see lib/validation.ts's
+    // emptyToUndefined) — forename/surname/dob are optional at the zod
+    // level but enforced as required just below for inline-mode reports,
+    // so an empty string now fails with the same "required" code (1007/
+    // 1010/1052) as omitting the field, instead of the name-regex/
+    // date-format code it used to fail with.
+    forename: emptyToUndefined(z.string().max(64).regex(NAME_RE).optional()),
+    middlename: emptyToUndefined(z.string().max(64).regex(NAME_RE).optional()),
+    surname: emptyToUndefined(z.string().max(64).regex(NAME_RE).optional()),
+    dob: emptyToUndefined(z.string().optional()),
     address: addressSchema.optional(),
     reference: z.string().max(255).optional(),
     enduser_agreement: z.boolean().optional(),

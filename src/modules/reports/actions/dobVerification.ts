@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { chance, int, subSeed } from '../../../lib/determinism.js';
+import { chance, int, namespacedSeed } from '../../../lib/determinism.js';
 import type { ActionContext, ActionModule } from './types.js';
 
 const schema = z.object({});
@@ -14,7 +14,7 @@ const schema = z.object({});
  * verbatim.
  */
 function build(ctx: ActionContext): Record<string, unknown> {
-  const s = (key: string) => subSeed(ctx.seed, `dob-verification:${key}`);
+  const s = namespacedSeed(ctx.seed, 'dob-verification');
   return {
     dob_verified: chance(s('verified'), 0.95),
     dob_count: int(s('count'), 0, 3),
@@ -22,7 +22,7 @@ function build(ctx: ActionContext): Record<string, unknown> {
 }
 
 function buildResponse(ctx: ActionContext, attributes: Record<string, unknown>) {
-  const s = (key: string) => subSeed(ctx.seed, `dob-verification:${key}`);
+  const s = namespacedSeed(ctx.seed, 'dob-verification');
   const dobCount = Number(attributes.dob_count ?? 0);
   const matched = Boolean(attributes.dob_verified) && dobCount > 0;
   return {

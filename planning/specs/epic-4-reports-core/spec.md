@@ -140,6 +140,17 @@ summarized for this epic:
   honestly reflecting that means "filter by an attribute nothing has"
   rather than silently ignoring the param or rejecting it as unsupported
   (see `planning/api-drift-remediation.md`).
+- **An empty string for `forename`/`middlename`/`surname`/`dob` is treated
+  as not-provided, not as an invalid value — fixed 2026-09-15.** Neither
+  `IDU_REST_API_Documentation.pdf` nor the input-validation FAQ says
+  anything about empty-string-vs-omitted for any field (checked directly);
+  this is a designed convention (`lib/validation.ts`'s `emptyToUndefined`),
+  not doc-transcribed. `forename`/`surname`/`dob` are optional at the zod
+  level but enforced as required for an inline report just below, so `""`
+  now fails with the same "required" code (1007/1010/1052) as omitting the
+  field, instead of the name-regex/date-format code it used to fail with.
+  A genuinely malformed non-empty value (`"O''Connor"`, `"John123"`) is
+  unaffected — still rejected exactly as before.
 - **`POST /reports` and `GET /reports/{id}` wrap their single-resource
   response in `{"data": ...}`**, matching the doc's own fingerprint (every
   response, single or paginated, uses the envelope — see

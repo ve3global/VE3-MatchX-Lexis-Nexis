@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { chance, int, subSeed } from '../../../lib/determinism.js';
+import { chance, int, namespacedSeed } from '../../../lib/determinism.js';
 import type { ActionContext, ActionModule } from './types.js';
 
 const schema = z.object({});
@@ -23,13 +23,13 @@ const LENDER_CATEGORIES = [
  * guessed `credit-check`/`credit_active` pair.
  */
 function build(ctx: ActionContext): Record<string, unknown> {
-  const s = (key: string) => subSeed(ctx.seed, `credit-active:${key}`);
+  const s = namespacedSeed(ctx.seed, 'credit-active');
   const matched = chance(s('matched'), 0.7);
   return { credit_lenders: matched ? int(s('lenders'), 1, 8) : 0 };
 }
 
 function buildResponse(ctx: ActionContext, attributes: Record<string, unknown>) {
-  const s = (key: string) => subSeed(ctx.seed, `credit-active:${key}`);
+  const s = namespacedSeed(ctx.seed, 'credit-active');
   const lenders = Number(attributes.credit_lenders ?? 0);
   if (lenders === 0) {
     return { matched: false, sources: [] };

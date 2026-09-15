@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { chance, int, subSeed } from '../../../lib/determinism.js';
+import { chance, int, namespacedSeed } from '../../../lib/determinism.js';
 import type { ActionContext, ActionModule } from './types.js';
 
 const schema = z.object({});
@@ -11,7 +11,7 @@ const schema = z.object({});
  * renamed from the guessed `director-check`/`director_match` pair.
  */
 function build(ctx: ActionContext): Record<string, unknown> {
-  const s = (key: string) => subSeed(ctx.seed, `company-officer-screening:${key}`);
+  const s = namespacedSeed(ctx.seed, 'company-officer-screening');
   return {
     company_officer_current: chance(s('current'), 0.1),
     company_officer_historic: chance(s('historic'), 0.15),
@@ -19,7 +19,7 @@ function build(ctx: ActionContext): Record<string, unknown> {
 }
 
 function buildResponse(ctx: ActionContext, attributes: Record<string, unknown>) {
-  const s = (key: string) => subSeed(ctx.seed, `company-officer-screening:${key}`);
+  const s = namespacedSeed(ctx.seed, 'company-officer-screening');
   const activeCount = attributes.company_officer_current ? int(s('active_count'), 1, 3) : 0;
   const resignedCount = attributes.company_officer_historic ? int(s('resigned_count'), 1, 3) : 0;
   const inactiveCount = attributes.company_officer_historic ? int(s('inactive_count'), 0, 2) : 0;

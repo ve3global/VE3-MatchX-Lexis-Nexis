@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { chance, int, subSeed } from '../../../lib/determinism.js';
+import { chance, int, namespacedSeed } from '../../../lib/determinism.js';
 import type { ActionContext, ActionModule } from './types.js';
 
 const schema = z.object({});
@@ -14,12 +14,13 @@ const schema = z.object({});
  * concept to diverge from it.
  */
 function build(ctx: ActionContext): Record<string, unknown> {
-  return { lexid_match: chance(subSeed(ctx.seed, 'lexid-match:matched'), 0.85) };
+  const s = namespacedSeed(ctx.seed, 'lexid-match');
+  return { lexid_match: chance(s('matched'), 0.85) };
 }
 
 function buildResponse(ctx: ActionContext, attributes: Record<string, unknown>) {
   const matched = Boolean(attributes.lexid_match);
-  const s = (key: string) => subSeed(ctx.seed, `lexid-match:${key}`);
+  const s = namespacedSeed(ctx.seed, 'lexid-match');
   return {
     matched,
     forename: ctx.subject.forename ?? null,

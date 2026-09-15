@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { chance, int, subSeed } from '../../../lib/determinism.js';
+import { chance, int, namespacedSeed } from '../../../lib/determinism.js';
 import type { FieldErrorCodeMap } from '../../../lib/validation.js';
 import type { ActionContext, ActionModule } from './types.js';
 
@@ -38,6 +38,11 @@ function electoralRollSources(seed: number, fromYear: number, count: number) {
   });
 }
 
+/** Shared by `build`/`buildResponse` so the request-body cast isn't repeated. */
+function getConfig(ctx: ActionContext): { full_er?: boolean; nfi_address?: boolean } {
+  return (ctx.requestBody.config ?? {}) as { full_er?: boolean; nfi_address?: boolean };
+}
+
 const NFI_SOURCES = [
   { key: 'address_pensions', source: 'NFI_PENSIONS', description: 'NFI - Pensions' },
   { key: 'address_payroll', source: 'NFI_PAYROLL', description: 'NFI - Payroll' },
@@ -54,7 +59,7 @@ const NFI_SOURCES = [
  * supersedes the previous "representative subset, count only" guess.
  */
 function buildAttributes(ctx: ActionContext, nfiAddress: boolean): Record<string, unknown> {
-  const s = (key: string) => subSeed(ctx.seed, `address-verification:${key}`);
+  const s = namespacedSeed(ctx.seed, 'address-verification');
   const attributes: Record<string, unknown> = {
     address_verified: chance(s('verified'), 0.95),
     address_current_er: chance(s('current_er'), 0.5),
@@ -94,8 +99,7 @@ function buildAttributes(ctx: ActionContext, nfiAddress: boolean): Record<string
 }
 
 function build(ctx: ActionContext): Record<string, unknown> {
-  const config = (ctx.requestBody.config ?? {}) as { full_er?: boolean; nfi_address?: boolean };
-  return buildAttributes(ctx, Boolean(config.nfi_address));
+  return buildAttributes(ctx, Boolean(getConfig(ctx).nfi_address));
 }
 
 /**
@@ -107,9 +111,8 @@ function build(ctx: ActionContext): Record<string, unknown> {
  * the addressing logic itself, only sample output.
  */
 function buildResponse(ctx: ActionContext, attributes: Record<string, unknown>) {
-  const s = (key: string) => subSeed(ctx.seed, `address-verification:${key}`);
-  const config = (ctx.requestBody.config ?? {}) as { full_er?: boolean; nfi_address?: boolean };
-  const nfiAddress = Boolean(config.nfi_address);
+  const s = namespacedSeed(ctx.seed, 'address-verification');
+  const nfiAddress = Boolean(getConfig(ctx).nfi_address);
   const verified = Boolean(attributes.address_verified);
   const goneAway = Boolean(
     attributes.address_gone_away_high || attributes.address_gone_away_very_high,

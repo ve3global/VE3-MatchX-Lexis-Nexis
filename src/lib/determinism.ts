@@ -28,6 +28,17 @@ export function subSeed(seed: number, salt: string): number {
   return fnv1a(`${seed}:${normalize(salt)}`);
 }
 
+/**
+ * An action module's own `subSeed` lookup, namespaced by its action name —
+ * every module under `modules/reports/actions/` derives its per-attribute
+ * seeds this way (see constitution.md's "Determinism engine"); this just
+ * gives that one-liner a name instead of re-declaring
+ * `const s = (key) => subSeed(ctx.seed, 'action-name:' + key)` per function.
+ */
+export function namespacedSeed(seed: number, actionName: string): (key: string) => number {
+  return (key: string) => subSeed(seed, `${actionName}:${key}`);
+}
+
 function mulberry32(seed: number): () => number {
   let state = seed;
   return () => {
