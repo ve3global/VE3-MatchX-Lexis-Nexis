@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { RefinementCtx, ZodError, ZodIssue } from 'zod';
 import { errorMessage } from './errorCodes.js';
 
@@ -89,6 +90,24 @@ export function validateAgeRange(
       params: { code: 1119 },
     });
   }
+}
+
+/**
+ * Wraps an optional field schema so an empty string is treated as if the
+ * field weren't sent at all — `middlename: ""` becomes "not provided"
+ * instead of failing whatever regex/length constraint the field has.
+ * Neither `IDU_REST_API_Documentation.pdf` nor the input-validation FAQ
+ * says anything about empty-string-vs-omitted for any field (checked
+ * directly, both create and update endpoints) — this is a designed
+ * convention, not doc-transcribed. Scoped to fields where this was an
+ * actual reachable case (a regex/min-length that "" can fail) — see each
+ * call site's own comment for why that field specifically. Deliberately
+ * NOT applied to `bridger_client_secret` (`users/schema.ts`), whose
+ * `.min(1)` is a real "a secret can't be empty" rule, not an incidental
+ * regex a formatting edge case tripped.
+ */
+export function emptyToUndefined<T extends z.ZodTypeAny>(schema: T) {
+  return z.preprocess((value) => (value === '' ? undefined : value), schema);
 }
 
 /** Builds the same `{message, errors}` shape as `mapZodError` for a single business-rule violation. */

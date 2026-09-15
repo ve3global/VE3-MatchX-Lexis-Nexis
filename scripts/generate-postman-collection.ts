@@ -826,6 +826,53 @@ const FOLDERS: FolderSpec[] = [
         tests: [statusTest(404)],
       },
       {
+        // address-verification is special-cased to return the full,
+        // freshly re-scored report (see reports/routes.ts), not
+        // {data: {"address-verification": result}} like every other
+        // action — hence asserting on data.address_verification/
+        // data.context/data.attributes directly, not data['address-verification'].
+        name: 'POST /reports/{id}/actions/address-verification — default config (no nfi_address)',
+        method: 'POST',
+        path: '/reports/{{report_id}}/actions/address-verification',
+        body: {},
+        tests: [
+          statusTest(200),
+          fieldDefinedTest(
+            'address_verification block present',
+            'data.address_verification.verified',
+          ),
+          fieldEqualsTest('context.nfi_address echoes false', 'data.context.nfi_address', false),
+        ],
+      },
+      {
+        // "Pension source" (planning/api-drift-remediation.md's 2026-09-08
+        // finding, MatchX/06-reports-address-verification-action.md) isn't
+        // a separate action — it's this same action with
+        // config.nfi_address: true, unlocking the NFI_PENSIONS/NFI_PAYROLL/
+        // NFI_TRANSPORT_PASS sources and the 17 nfi-gated attributes.
+        name: 'POST /reports/{id}/actions/address-verification — pension source (config.nfi_address: true)',
+        method: 'POST',
+        path: '/reports/{{report_id}}/actions/address-verification',
+        body: { config: { nfi_address: true } },
+        tests: [
+          statusTest(200),
+          fieldEqualsTest('context.nfi_address echoes true', 'data.context.nfi_address', true),
+          fieldDefinedTest(
+            'address_pensions attribute present',
+            'data.attributes.address_pensions',
+          ),
+          fieldDefinedTest('address_payroll attribute present', 'data.attributes.address_payroll'),
+          fieldDefinedTest(
+            'address_transport_pass attribute present',
+            'data.attributes.address_transport_pass',
+          ),
+          fieldDefinedTest(
+            'address_nfi_sources count present',
+            'data.attributes.address_nfi_sources',
+          ),
+        ],
+      },
+      {
         name: 'POST /reports — QA override: surname SANCTIONED',
         method: 'POST',
         path: '/reports',

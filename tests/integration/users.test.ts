@@ -80,6 +80,31 @@ describe('users module', () => {
       expect(res.body.errors.gender[0].code).toBe(1210);
     });
 
+    it('treats an empty string as not-provided, leaving the existing value untouched', async () => {
+      const username = `emptystr_${Date.now()}`;
+      await request(app)
+        .patch('/lexis-nexis/users/self')
+        .set(authed())
+        .send({ username, telephone: '01234567890' });
+
+      const res = await request(app)
+        .patch('/lexis-nexis/users/self')
+        .set(authed())
+        .send({ username: '', telephone: '' });
+      expect(res.status).toBe(200);
+      expect(res.body.username).toBe(username);
+      expect(res.body.telephone).toBe('01234567890');
+    });
+
+    it('still rejects a malformed non-empty username', async () => {
+      const res = await request(app)
+        .patch('/lexis-nexis/users/self')
+        .set(authed())
+        .send({ username: 'not a valid username!' });
+      expect(res.status).toBe(422);
+      expect(res.body.errors.username[0].code).toBe(1314);
+    });
+
     it('allows a client to re-save its own current username (no-op, not a collision)', async () => {
       const username = `selfsame_${Date.now()}`;
       await request(app).patch('/lexis-nexis/users/self').set(authed()).send({ username });

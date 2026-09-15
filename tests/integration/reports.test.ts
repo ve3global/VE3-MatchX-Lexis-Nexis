@@ -126,6 +126,28 @@ describe('reports', () => {
     expect(res.body.data.surname).toBe('Smith-Jones');
   });
 
+  it('treats an empty string as not-provided for optional/effectively-required name fields', async () => {
+    // middlename is genuinely optional — "" is simply omitted.
+    const withEmptyMiddlename = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send({ ...validInline, middlename: '' });
+    expect(withEmptyMiddlename.status).toBe(201);
+    expect(withEmptyMiddlename.body.data.middlename).toBeNull();
+
+    // forename/dob are optional at the schema level but enforced as
+    // required for an inline report — "" now fails with the same
+    // "required" code as omitting the field entirely, not the name-regex/
+    // date-format code it used to fail with.
+    const withEmptyForenameAndDob = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send({ ...validInline, forename: '', dob: '' });
+    expect(withEmptyForenameAndDob.status).toBe(422);
+    expect(withEmptyForenameAndDob.body.errors.forename[0].code).toBe(1007);
+    expect(withEmptyForenameAndDob.body.errors.dob[0].code).toBe(1052);
+  });
+
   it('caps forename/middlename/surname at 64 characters', async () => {
     const tooLong = 'a'.repeat(65);
     const exactly64 = 'a'.repeat(64);

@@ -110,6 +110,17 @@ for my account (`options`) — plus a minimal company record the doc's own
   entity.** This replica has never modeled a "user" distinct from a
   `Client` (the OAuth-authenticated identity throughout) — `self` is this
   replica's per-client profile, not a multi-user-per-client system.
+- **An empty string on `PATCH /users/self` is treated as not-provided,
+  leaving the existing value untouched — fixed 2026-09-15.** Applies to
+  `username`/`telephone`/`extension`/`mobile`/`webdev_email`
+  (`lib/validation.ts`'s `emptyToUndefined`) — no doc evidence either way
+  (checked directly), so "not provided" is the more conservative reading
+  for a partial-update endpoint, where a field's absence already means
+  "leave it alone." Deliberately **not** applied to `options`'
+  `bridger_client_secret`, whose `.min(1)` is a real "a secret can't be
+  empty" rule, not an incidental regex a formatting edge case tripped. A
+  genuinely malformed non-empty value is unaffected — still rejected
+  exactly as before.
 
 ## Out of scope
 

@@ -1,33 +1,50 @@
 import { z } from 'zod';
+import { emptyToUndefined } from '../../lib/validation.js';
 import type { FieldErrorCodeMap } from '../../lib/validation.js';
 
 const GENDERS = ['male', 'female', 'other', 'prefer_not_to_say'] as const;
 
+// "" is treated as not-provided for every field here (see
+// lib/validation.ts's emptyToUndefined) — this is a PATCH, so "not
+// provided" already means "leave the existing value alone," which is the
+// more conservative reading absent any doc evidence either way (checked
+// directly; neither IDU_REST_API_Documentation.pdf nor the input-
+// validation FAQ says anything about empty-string-vs-omitted for update
+// endpoints). `gender` is an enum, not a free string, so "" was never a
+// case it needed to handle.
 export const updateSelfSchema = z.object({
-  username: z
-    .string()
-    .max(255)
-    .regex(/^[a-zA-Z0-9_.-]+$/, { message: 'The username format is invalid' })
-    .optional(),
+  username: emptyToUndefined(
+    z
+      .string()
+      .max(255)
+      .regex(/^[a-zA-Z0-9_.-]+$/, { message: 'The username format is invalid' })
+      .optional(),
+  ),
   gender: z
     .enum(GENDERS, { errorMap: () => ({ message: 'The selected gender is invalid' }) })
     .optional(),
-  telephone: z
-    .string()
-    .max(255)
-    .regex(/^[0-9+() -]+$/, { message: 'The telephone format is invalid' })
-    .optional(),
-  extension: z
-    .string()
-    .max(255)
-    .regex(/^[0-9]+$/, { message: 'The extension format is invalid' })
-    .optional(),
-  mobile: z
-    .string()
-    .max(255)
-    .regex(/^[0-9+() -]+$/, { message: 'The mobile format is invalid' })
-    .optional(),
-  webdev_email: z.string().email().max(255).optional(),
+  telephone: emptyToUndefined(
+    z
+      .string()
+      .max(255)
+      .regex(/^[0-9+() -]+$/, { message: 'The telephone format is invalid' })
+      .optional(),
+  ),
+  extension: emptyToUndefined(
+    z
+      .string()
+      .max(255)
+      .regex(/^[0-9]+$/, { message: 'The extension format is invalid' })
+      .optional(),
+  ),
+  mobile: emptyToUndefined(
+    z
+      .string()
+      .max(255)
+      .regex(/^[0-9+() -]+$/, { message: 'The mobile format is invalid' })
+      .optional(),
+  ),
+  webdev_email: emptyToUndefined(z.string().email().max(255).optional()),
 });
 
 export type UpdateSelfRequest = z.infer<typeof updateSelfSchema>;
