@@ -5,6 +5,8 @@ metadata:
   namespace: deploy
   annotations:
     kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+
 spec:
   tls:
     - hosts:
@@ -15,12 +17,6 @@ spec:
     - host: dev.matchx.blue
       http:
         paths:
-          # No rewrite-target: the app itself mounts every route under
-          # `/lexis-nexis` (see src/lib/apiPrefix.ts) and expects to see
-          # that prefix on the incoming request. A rewrite-target here
-          # strips it before forwarding, so the app 404s on every real
-          # request — only a client that (wrongly) doubled the prefix
-          # happened to land on a path the app recognized.
           - path: /lexis-nexis
             pathType: Prefix
             backend:
