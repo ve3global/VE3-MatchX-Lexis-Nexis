@@ -2424,6 +2424,77 @@
           ]
         },
         {
+          "name": "POST /reports/{id}/actions/address-verification — default config (no nfi_address)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/lexis-nexis/reports/{{report_id}}/actions/address-verification",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('address_verification block present', () => pm.expect(pm.response.json()[\"data\"][\"address_verification\"][\"verified\"]).to.not.be.undefined);",
+                  "pm.test('context.nfi_address echoes false', () => pm.expect(pm.response.json()[\"data\"][\"context\"][\"nfi_address\"]).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /reports/{id}/actions/address-verification — pension source (config.nfi_address: true)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/lexis-nexis/reports/{{report_id}}/actions/address-verification",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"config\": {\n    \"nfi_address\": true\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('context.nfi_address echoes true', () => pm.expect(pm.response.json()[\"data\"][\"context\"][\"nfi_address\"]).to.eql(true));",
+                  "pm.test('address_pensions attribute present', () => pm.expect(pm.response.json()[\"data\"][\"attributes\"][\"address_pensions\"]).to.not.be.undefined);",
+                  "pm.test('address_payroll attribute present', () => pm.expect(pm.response.json()[\"data\"][\"attributes\"][\"address_payroll\"]).to.not.be.undefined);",
+                  "pm.test('address_transport_pass attribute present', () => pm.expect(pm.response.json()[\"data\"][\"attributes\"][\"address_transport_pass\"]).to.not.be.undefined);",
+                  "pm.test('address_nfi_sources count present', () => pm.expect(pm.response.json()[\"data\"][\"attributes\"][\"address_nfi_sources\"]).to.not.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "POST /reports — QA override: surname SANCTIONED",
           "request": {
             "method": "POST",
