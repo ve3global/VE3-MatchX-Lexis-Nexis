@@ -44,6 +44,20 @@ describe('reports', () => {
     expect(res.body.data.assessment).toBeNull();
   });
 
+  it("reports the caller's real profile identity as `user`, not a stub", async () => {
+    // 2026-09-08 and 2026-09-16 captures both show a real {id, username}
+    // object here — replaced the old `user: {}` stub.
+    const res = await request(app).post('/lexis-nexis/reports').set(authed()).send(validInline);
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.user).toHaveProperty('id');
+    expect(typeof res.body.data.user.id).toBe('string');
+    expect(res.body.data.user).toHaveProperty('username');
+
+    const getRes = await request(app).get(`/lexis-nexis/reports/${res.body.data.id}`).set(authed());
+    expect(getRes.body.data.user).toEqual(res.body.data.user);
+  });
+
   it('rejects an inline report missing required fields', async () => {
     const res = await request(app).post('/lexis-nexis/reports').set(authed()).send({});
 
@@ -244,12 +258,11 @@ describe('reports', () => {
     expect(res.body.data.status).toBe('COMPLETE');
     expect(res.body.data.address_verification).toHaveProperty('verified');
     expect(res.body.data.attributes).toHaveProperty('address_verified');
-    expect(res.body.data.context).toMatchObject({
-      age_min: null,
-      age_max: null,
-      full_er: false,
-      nfi_address: false,
-    });
+    // address-verification alone doesn't gate age_min/age_max into context —
+    // only age-verification does (2026-09-16 capture, see service.ts).
+    expect(res.body.data.context).toMatchObject({ full_er: false, nfi_address: false });
+    expect(res.body.data.context).not.toHaveProperty('age_min');
+    expect(res.body.data.context).not.toHaveProperty('age_max');
   });
 
   it('stays STARTED for a primary action needing input the create-report request never collects', async () => {
@@ -475,19 +488,27 @@ describe('reports', () => {
     });
   });
 
-  it('adds age_min/age_max to context once address/age-verification is requested (always null in inline mode)', async () => {
-    const res = await request(app)
+  it('only age-verification (not address-verification) gates age_min/age_max into context', async () => {
+    // 2026-09-16 capture: address-verification alone comes back with no
+    // age_min/age_max keys at all — narrower than the prior
+    // "address-verification or age-verification" guess.
+    const addressOnly = await request(app)
       .post('/lexis-nexis/reports')
       .set(authed())
       .send({ ...validInline, actions: ['address-verification'] });
+    expect(addressOnly.status).toBe(201);
+    expect(addressOnly.body.data.context).toMatchObject({ full_er: false, nfi_address: false });
+    expect(addressOnly.body.data.context).not.toHaveProperty('age_min');
+    expect(addressOnly.body.data.context).not.toHaveProperty('age_max');
 
-    expect(res.status).toBe(201);
-    expect(res.body.data.context).toMatchObject({
-      age_min: null,
-      age_max: null,
-      full_er: false,
-      nfi_address: false,
-    });
+    // age-verification specifically does gate it (always null in inline
+    // mode, per the 2026-09-03 capture).
+    const withAgeVerification = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send({ ...validInline, actions: ['age-verification'] });
+    expect(withAgeVerification.status).toBe(201);
+    expect(withAgeVerification.body.data.context).toMatchObject({ age_min: null, age_max: null });
   });
 
   it('accepts inline scorecard_id/actions and completes immediately, computing an assessment', async () => {

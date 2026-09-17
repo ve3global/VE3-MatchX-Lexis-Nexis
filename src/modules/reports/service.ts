@@ -59,7 +59,10 @@ export function toResponseKey(actionName: string): string {
   return SNAKE_CASE_ACTION_KEYS.has(actionName) ? actionName.replace(/-/g, '_') : actionName;
 }
 
-export function serializeReport(report: ReportWithRelations) {
+export function serializeReport(
+  report: ReportWithRelations,
+  userSummary: { id: string; username: string | null },
+) {
   const subject: ActionSubject = {
     forename: report.forename,
     middlename: report.middlename,
@@ -99,7 +102,12 @@ export function serializeReport(report: ReportWithRelations) {
     if (result.actionName === 'address-verification') {
       addressVerificationResult = result;
     }
-    if (result.actionName === 'address-verification' || result.actionName === 'age-verification') {
+    // A 2026-09-16 capture running address-verification alone (no
+    // age-verification anywhere on the report) came back with no
+    // age_min/age_max keys in context at all — narrower than the prior
+    // "address-verification or age-verification" guess, which would have
+    // added them here too. Only age-verification actually gates this.
+    if (result.actionName === 'age-verification') {
       hasAgeGatingAction = true;
     }
   }
@@ -117,16 +125,18 @@ export function serializeReport(report: ReportWithRelations) {
         )
       : null;
 
-  // Shape confirmed by two live sandbox captures (2026-09-03 and
-  // 2026-09-10, planning/api-drift-remediation.md's dated entries).
-  // `age_min`/`age_max` only appear when address-verification or
-  // age-verification was requested, echoing the report type's own stored
-  // range (this replica's only real age-gating concept) rather than the
-  // inline `age_min`/`age_max` fields, which aren't applied to anything
-  // (same honest-gap precedent as EPIC-4's `uklexid` filter) — hence
-  // `null` for inline-mode reports, confirmed by the 2026-09-03 capture.
-  // `full_er`/`nfi_address` only appear once address-verification has
-  // run, echoing the config it was last called with.
+  // Shape confirmed by three live sandbox captures (2026-09-03, 2026-09-10,
+  // and 2026-09-16, planning/api-drift-remediation.md's dated entries).
+  // `age_min`/`age_max` only appear once age-verification specifically has
+  // run (not address-verification — a 2026-09-16 capture running only
+  // address-verification came back with no age_min/age_max keys at all),
+  // echoing the report type's own stored range (this replica's only real
+  // age-gating concept) rather than the inline `age_min`/`age_max` fields
+  // or address-verification's own `config`, neither of which are applied
+  // to anything (same honest-gap precedent as EPIC-4's `uklexid` filter) —
+  // hence `null` for inline-mode reports, confirmed by the 2026-09-03
+  // capture. `full_er`/`nfi_address` only appear once address-verification
+  // has run, echoing the config it was last called with.
   const context: Record<string, unknown> = {
     reference: report.reference,
     enduser_agreement: report.enduserAgreement,
@@ -156,9 +166,7 @@ export function serializeReport(report: ReportWithRelations) {
     enduser_agreement: report.enduserAgreement,
     test: report.test,
     status: report.status,
-    // Minimal doc-shaped stub — no users/webhooks data exists in phase 1
-    // (see planning/constitution.md's phase-2 deferral list).
-    user: {},
+    user: userSummary,
     context,
     annotations: {},
     assessment,
