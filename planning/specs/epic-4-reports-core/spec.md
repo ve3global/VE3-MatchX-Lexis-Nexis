@@ -151,6 +151,21 @@ summarized for this epic:
   field, instead of the name-regex/date-format code it used to fail with.
   A genuinely malformed non-empty value (`"O''Connor"`, `"John123"`) is
   unaffected — still rejected exactly as before.
+- **`report.user` is the caller's real profile, not a `{}` stub — fixed
+  2026-09-17.** Two live captures (2026-09-08, 2026-09-16, see
+  `planning/api-drift-remediation.md`) show `{id, username}` sourced from
+  the same per-client `UserProfile` `serializeScorecard` already echoes
+  (`scorecards/service.ts#getUserSummary`, auto-created on first access).
+- **`context.age_min`/`age_max` are gated on `age-verification` only, not
+  `address-verification` — narrowed 2026-09-17.** A 2026-09-16 capture
+  running address-verification alone got no `age_min`/`age_max` keys at
+  all; the two actions were never previously disambiguated because earlier
+  captures always ran both together. `config: {age_min, age_max}` sent at
+  the top level of an inline `POST /reports` body is confirmed to have zero
+  effect (no `config` field exists on `createReportSchema`, so Zod's
+  default strip-unknown-keys behavior already drops it) — distinct from
+  address-verification's own real, wired `config.full_er`/
+  `config.nfi_address`.
 - **`POST /reports` and `GET /reports/{id}` wrap their single-resource
   response in `{"data": ...}`**, matching the doc's own fingerprint (every
   response, single or paginated, uses the envelope — see

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { paginate } from '../../lib/pagination.js';
 import { ValidationError } from '../../middleware/errorHandler.js';
+import { getUserSummary } from '../scorecards/service.js';
 import {
   CREATE_REPORT_ERROR_CODES,
   createReportSchema,
@@ -33,7 +34,8 @@ reportsRouter.post('/reports', async (req, res, next) => {
   }
   try {
     const report = await createReport(req.client!.id, parsed.data);
-    res.status(201).json({ data: serializeReport(report) });
+    const userSummary = await getUserSummary(req.client!.id);
+    res.status(201).json({ data: serializeReport(report, userSummary) });
   } catch (error) {
     next(error);
   }
@@ -48,7 +50,16 @@ reportsRouter.get('/reports', async (req, res, next) => {
   try {
     const { page, per_page: perPage, ...filters } = parsed.data;
     const { items, total } = await listReports(req.client!.id, filters, page, perPage);
-    res.status(200).json(paginate(items.map(serializeReport), total, page, perPage, '/reports'));
+    const userSummary = await getUserSummary(req.client!.id);
+    res.status(200).json(
+      paginate(
+        items.map((item) => serializeReport(item, userSummary)),
+        total,
+        page,
+        perPage,
+        '/reports',
+      ),
+    );
   } catch (error) {
     next(error);
   }
@@ -57,7 +68,8 @@ reportsRouter.get('/reports', async (req, res, next) => {
 reportsRouter.get('/reports/:id', async (req, res, next) => {
   try {
     const report = await findReport(req.client!.id, req.params.id);
-    res.status(200).json({ data: serializeReport(report) });
+    const userSummary = await getUserSummary(req.client!.id);
+    res.status(200).json({ data: serializeReport(report, userSummary) });
   } catch (error) {
     next(error);
   }
@@ -108,7 +120,8 @@ reportsRouter.post('/reports/:id/actions/:action', async (req, res, next) => {
     const result = await runAction(req.client!.id, req.params.id, req.params.action, req.body);
     if (req.params.action === 'address-verification') {
       const report = await findReport(req.client!.id, req.params.id);
-      res.status(200).json({ data: serializeReport(report) });
+      const userSummary = await getUserSummary(req.client!.id);
+      res.status(200).json({ data: serializeReport(report, userSummary) });
       return;
     }
     res.status(200).json({ data: { [toResponseKey(req.params.action)]: result } });

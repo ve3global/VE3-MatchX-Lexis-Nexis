@@ -21,13 +21,30 @@ export function serializeScorecard(scorecard: Scorecard, username: string | null
 }
 
 /** Auto-created on first access, same precedent as users/service.ts#getSelf. */
-export async function getUsername(clientId: string): Promise<string | null> {
-  const profile = await prisma.userProfile.upsert({
+async function getOrCreateUserProfile(clientId: string) {
+  return prisma.userProfile.upsert({
     where: { clientId },
     update: {},
     create: { clientId },
   });
+}
+
+export async function getUsername(clientId: string): Promise<string | null> {
+  const profile = await getOrCreateUserProfile(clientId);
   return profile.username;
+}
+
+/**
+ * `{id, username}` confirmed by live sandbox captures (2026-09-08's
+ * pensions.json and 2026-09-16's, planning/api-drift-remediation.md) —
+ * reports' own `user` field is the caller's real profile identity, not
+ * the `{}` stub it used to be.
+ */
+export async function getUserSummary(
+  clientId: string,
+): Promise<{ id: string; username: string | null }> {
+  const profile = await getOrCreateUserProfile(clientId);
+  return { id: profile.id, username: profile.username };
 }
 
 async function assertNameAvailable(
