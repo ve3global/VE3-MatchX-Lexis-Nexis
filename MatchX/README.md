@@ -20,3 +20,4 @@ doc's own inline comments — is reproduced verbatim.
 - [04 — Report: credit activity](04-reports-credit-activity.md)
 - [05 — Scorecards](05-scorecards.md)
 - [06 — Report action: address-verification (NFI/pension source)](06-reports-address-verification-action.md)
+- [07 — Report: pension source (dedicated scorecard)](07-reports-pension-source.md)
