@@ -873,6 +873,104 @@ const FOLDERS: FolderSpec[] = [
         ],
       },
       {
+        // Dedicated NFI/pension scorecard (2026-09-17 capture,
+        // MatchX/07-reports-pension-source.md) — a `min_score` is added to
+        // the "NFI Address Sources" group since the capture's payload
+        // omitted one and this repo's groupSchema requires it (see that
+        // doc's own note; the engine never reads min_score either way).
+        name: 'POST /scorecards — pension scorecard (Electoral Role + NFI Address Sources)',
+        method: 'POST',
+        path: '/scorecards',
+        body: {
+          name: 'Verification Pension Scorecard {{$timestamp}}',
+          pass_threshold: 100,
+          fail_threshold: 75,
+          groups: [
+            {
+              group_name: 'Electoral Role Address Verification',
+              min_score: 35,
+              rules: [
+                { attribute: 'address_verified', match_score: 10, no_match_score: 0 },
+                { attribute: 'address_current_er', match_score: 20, no_match_score: 0 },
+                { attribute: 'address_historic_er', match_score: 5, no_match_score: 0 },
+                { attribute: 'address_gone_away_high', match_score: -8, no_match_score: 0 },
+                { attribute: 'address_gone_away_very_high', match_score: -15, no_match_score: 0 },
+              ],
+            },
+            {
+              group_name: 'NFI Address Sources',
+              min_score: 50,
+              rules: [
+                { attribute: 'address_council_tax', match_score: 25, no_match_score: 0 },
+                {
+                  attribute: 'address_council_tax_reduction_scheme',
+                  match_score: 25,
+                  no_match_score: 0,
+                },
+                { attribute: 'address_deferred_pensions', match_score: 25, no_match_score: 0 },
+                { attribute: 'address_housing_benefits', match_score: 25, no_match_score: 0 },
+                { attribute: 'address_housing_tenants', match_score: 25, no_match_score: 0 },
+                { attribute: 'address_payroll', match_score: 25, no_match_score: 0 },
+                { attribute: 'address_pensions', match_score: 25, no_match_score: 0 },
+                { attribute: 'address_pensions_gratuities', match_score: 25, no_match_score: 0 },
+                { attribute: 'address_personal_licence', match_score: 25, no_match_score: 0 },
+                { attribute: 'address_right_to_buy', match_score: 25, no_match_score: 0 },
+                { attribute: 'address_state_benefits', match_score: 25, no_match_score: 0 },
+                { attribute: 'address_student_loans', match_score: 25, no_match_score: 0 },
+                { attribute: 'address_taxi_drivers', match_score: 25, no_match_score: 0 },
+                { attribute: 'address_transport_pass', match_score: 25, no_match_score: 0 },
+                { attribute: 'address_waiting_list', match_score: 25, no_match_score: 0 },
+              ],
+            },
+          ],
+        },
+        tests: [statusTest(201), fieldEqualsTest('starts as DRAFT', 'data.status', 'DRAFT')],
+        saves: [{ as: 'pension_scorecard_id', from: 'data.id' }],
+      },
+      {
+        name: 'POST /reports — inline, scored by the pension scorecard',
+        method: 'POST',
+        path: '/reports',
+        body: {
+          forename: 'Duncan',
+          surname: 'Bowen',
+          dob: '1984-03-14',
+          address: { address1: '210 Julius Road', postcode: 'BS7 8EU' },
+          enduser_agreement: true,
+          scorecard_id: '{{pension_scorecard_id}}',
+        },
+        tests: [statusTest(201)],
+        saves: [{ as: 'pension_report_id', from: 'data.id' }],
+      },
+      {
+        name: 'POST /reports/{id}/actions/address-verification — pension source, scored by the pension scorecard',
+        method: 'POST',
+        path: '/reports/{{pension_report_id}}/actions/address-verification',
+        body: { config: { nfi_address: true } },
+        tests: [
+          statusTest(200),
+          // {{...}} interpolation only applies to request fields (URL/body/
+          // headers), not test-script source — a collection variable read
+          // inside a test needs the explicit pm.collectionVariables.get API.
+          `pm.test('assessment.scorecard_id echoes the pension scorecard', () => pm.expect(pm.response.json().data.assessment.scorecard_id).to.eql(pm.collectionVariables.get('pension_scorecard_id')));`,
+          fieldEqualsTest(
+            'score_breakdown group 0 is Electoral Role Address Verification',
+            'data.assessment.score_breakdown.0.group',
+            'Electoral Role Address Verification',
+          ),
+          fieldEqualsTest(
+            'score_breakdown group 1 is NFI Address Sources',
+            'data.assessment.score_breakdown.1.group',
+            'NFI Address Sources',
+          ),
+          fieldEqualsTest(
+            'NFI Address Sources carries all 15 gated attributes',
+            'data.assessment.score_breakdown.1.rules.length',
+            15,
+          ),
+        ],
+      },
+      {
         name: 'POST /reports — QA override: surname SANCTIONED',
         method: 'POST',
         path: '/reports',

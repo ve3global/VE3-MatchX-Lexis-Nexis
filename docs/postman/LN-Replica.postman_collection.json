@@ -2495,6 +2495,109 @@
           ]
         },
         {
+          "name": "POST /scorecards — pension scorecard (Electoral Role + NFI Address Sources)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/lexis-nexis/scorecards",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Verification Pension Scorecard {{$timestamp}}\",\n  \"pass_threshold\": 100,\n  \"fail_threshold\": 75,\n  \"groups\": [\n    {\n      \"group_name\": \"Electoral Role Address Verification\",\n      \"min_score\": 35,\n      \"rules\": [\n        {\n          \"attribute\": \"address_verified\",\n          \"match_score\": 10,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_current_er\",\n          \"match_score\": 20,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_historic_er\",\n          \"match_score\": 5,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_gone_away_high\",\n          \"match_score\": -8,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_gone_away_very_high\",\n          \"match_score\": -15,\n          \"no_match_score\": 0\n        }\n      ]\n    },\n    {\n      \"group_name\": \"NFI Address Sources\",\n      \"min_score\": 50,\n      \"rules\": [\n        {\n          \"attribute\": \"address_council_tax\",\n          \"match_score\": 25,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_council_tax_reduction_scheme\",\n          \"match_score\": 25,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_deferred_pensions\",\n          \"match_score\": 25,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_housing_benefits\",\n          \"match_score\": 25,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_housing_tenants\",\n          \"match_score\": 25,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_payroll\",\n          \"match_score\": 25,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_pensions\",\n          \"match_score\": 25,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_pensions_gratuities\",\n          \"match_score\": 25,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_personal_licence\",\n          \"match_score\": 25,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_right_to_buy\",\n          \"match_score\": 25,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_state_benefits\",\n          \"match_score\": 25,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_student_loans\",\n          \"match_score\": 25,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_taxi_drivers\",\n          \"match_score\": 25,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_transport_pass\",\n          \"match_score\": 25,\n          \"no_match_score\": 0\n        },\n        {\n          \"attribute\": \"address_waiting_list\",\n          \"match_score\": 25,\n          \"no_match_score\": 0\n        }\n      ]\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('starts as DRAFT', () => pm.expect(pm.response.json()[\"data\"][\"status\"]).to.eql(\"DRAFT\"));",
+                  "pm.collectionVariables.set('pension_scorecard_id', pm.response.json()[\"data\"][\"id\"]);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /reports — inline, scored by the pension scorecard",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/lexis-nexis/reports",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"forename\": \"Duncan\",\n  \"surname\": \"Bowen\",\n  \"dob\": \"1984-03-14\",\n  \"address\": {\n    \"address1\": \"210 Julius Road\",\n    \"postcode\": \"BS7 8EU\"\n  },\n  \"enduser_agreement\": true,\n  \"scorecard_id\": \"{{pension_scorecard_id}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('pension_report_id', pm.response.json()[\"data\"][\"id\"]);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /reports/{id}/actions/address-verification — pension source, scored by the pension scorecard",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/lexis-nexis/reports/{{pension_report_id}}/actions/address-verification",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"config\": {\n    \"nfi_address\": true\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('assessment.scorecard_id echoes the pension scorecard', () => pm.expect(pm.response.json().data.assessment.scorecard_id).to.eql(pm.collectionVariables.get('pension_scorecard_id')));",
+                  "pm.test('score_breakdown group 0 is Electoral Role Address Verification', () => pm.expect(pm.response.json()[\"data\"][\"assessment\"][\"score_breakdown\"][0][\"group\"]).to.eql(\"Electoral Role Address Verification\"));",
+                  "pm.test('score_breakdown group 1 is NFI Address Sources', () => pm.expect(pm.response.json()[\"data\"][\"assessment\"][\"score_breakdown\"][1][\"group\"]).to.eql(\"NFI Address Sources\"));",
+                  "pm.test('NFI Address Sources carries all 15 gated attributes', () => pm.expect(pm.response.json()[\"data\"][\"assessment\"][\"score_breakdown\"][1][\"rules\"][\"length\"]).to.eql(15));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "POST /reports — QA override: surname SANCTIONED",
           "request": {
             "method": "POST",
