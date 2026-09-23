@@ -32,7 +32,7 @@ spec:
                 secretKeyRef:
                   name: database-url
                   key: DATABASE_URL
-            - name: NODE_ENV  
+            - name: CLIENT_PROVISION_KEY  
               valueFrom:
                 secretKeyRef:
                   name: lexis-nexis-secret
