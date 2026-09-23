@@ -12,6 +12,7 @@ import type { RouteInfo } from './collectRoutes.js';
  * human cross-check against IDU_REST_API_Documentation.pdf (constitution.md).
  */
 const EXTENSION_ROUTES_UNPREFIXED: RouteInfo[] = [
+  { method: 'POST', path: '/clients' }, // client provisioning, no ticket — see README.md
   { method: 'POST', path: '/oauth/token/revoke' }, // EPIC-2, LN9
   { method: 'GET', path: '/addresses' }, // EPIC-3, LN10
   { method: 'GET', path: '/addresses/search' }, // EPIC-3, LN11

@@ -84,6 +84,15 @@ Some endpoints exist only in this replica, not in the real LexisNexis API —
 built for the team's own testing needs and never assumed by anything
 claiming doc parity. Currently:
 
+- `POST /clients` — mints a new tenant's `client_id`/`client_secret` on
+  demand, no ticket/doc equivalent (the only prior provisioning path was
+  `prisma/seed.ts`'s hardcoded demo client). Mounted pre-auth like
+  `/oauth/token` — gated by its own shared secret instead, sent as the
+  `X-LN-Replica-Provision-Key` header and compared against the
+  `CLIENT_PROVISION_KEY` env var. Unset entirely, the route fails closed
+  (500) rather than accepting any/no key. The plaintext `client_secret` is
+  returned exactly once, in the creation response — there's no rotation or
+  regenerate endpoint yet.
 - `POST /oauth/token/revoke` — revoke a client's active tokens (LN9)
 - `GET /addresses`, `GET /addresses/search`, `GET /addresses/{reference}` —
   convenience aliases delegating to `POST /address-lookup` (LN10-12)
