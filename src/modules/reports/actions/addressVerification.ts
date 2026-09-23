@@ -43,14 +43,66 @@ function getConfig(ctx: ActionContext): { full_er?: boolean; nfi_address?: boole
   return (ctx.requestBody.config ?? {}) as { full_er?: boolean; nfi_address?: boolean };
 }
 
+/**
+ * All 16 `nfi_address`-gated attributes double as an NFI data source
+ * (`address_nfi_sources` itself is just their match count, not a source).
+ * A 2026-09-17 pension-source capture (MatchX/07-reports-pension-source.md)
+ * showed `address_personal_licence`/`address_right_to_buy` sources too —
+ * previously only the 3 nfi_address's own doc example happened to have
+ * matched (pensions/payroll/transport_pass) were wired up.
+ */
 const NFI_SOURCES = [
-  { key: 'address_pensions', source: 'NFI_PENSIONS', description: 'NFI - Pensions' },
+  { key: 'address_council_tax', source: 'NFI_COUNCIL_TAX', description: 'NFI - Council tax' },
+  {
+    key: 'address_council_tax_reduction_scheme',
+    source: 'NFI_COUNCIL_TAX_REDUCTION_SCHEME',
+    description: 'NFI - Council tax reduction scheme',
+  },
+  {
+    key: 'address_deferred_pensions',
+    source: 'NFI_DEFERRED_PENSIONS',
+    description: 'NFI - Deferred pensions',
+  },
+  {
+    key: 'address_housing_benefits',
+    source: 'NFI_HOUSING_BENEFITS',
+    description: 'NFI - Housing benefits',
+  },
+  {
+    key: 'address_housing_tenants',
+    source: 'NFI_HOUSING_TENANTS',
+    description: 'NFI - Housing tenants',
+  },
   { key: 'address_payroll', source: 'NFI_PAYROLL', description: 'NFI - Payroll' },
+  { key: 'address_pensions', source: 'NFI_PENSIONS', description: 'NFI - Pensions' },
+  {
+    key: 'address_pensions_gratuities',
+    source: 'NFI_PENSIONS_GRATUITIES',
+    description: 'NFI - Pensions gratuities',
+  },
+  {
+    key: 'address_personal_licence',
+    source: 'NFI_PERSONAL_LICENCE',
+    description: 'NFI - Personal licence',
+  },
+  { key: 'address_right_to_buy', source: 'NFI_RIGHT_TO_BUY', description: 'NFI - Right to buy' },
+  {
+    key: 'address_state_benefits',
+    source: 'NFI_STATE_BENEFITS',
+    description: 'NFI - State benefits',
+  },
+  {
+    key: 'address_student_loans',
+    source: 'NFI_STUDENT_LOANS',
+    description: 'NFI - Student loans',
+  },
+  { key: 'address_taxi_drivers', source: 'NFI_TAXI_DRIVERS', description: 'NFI - Taxi drivers' },
   {
     key: 'address_transport_pass',
     source: 'NFI_TRANSPORT_PASS',
     description: 'NFI - Transport pass',
   },
+  { key: 'address_waiting_list', source: 'NFI_WAITING_LIST', description: 'NFI - Waiting list' },
 ];
 
 /**
@@ -130,6 +182,10 @@ function buildResponse(ctx: ActionContext, attributes: Record<string, unknown>) 
       }
     }
   }
+  // Both captures (2026-09-08's MatchX/06, 2026-09-17's MatchX/07) show NFI
+  // entries interleaved among the electoral-roll ones by `recency` date, not
+  // appended after them — a single descending sort reproduces both.
+  sources.sort((a, b) => (a.recency < b.recency ? 1 : a.recency > b.recency ? -1 : 0));
 
   return {
     verified,

@@ -69,6 +69,26 @@ const REASON_LABELS: Partial<Record<string, string>> = {
   address_telephone_directory: 'Found in the telephone directory',
   address_registry_trust: 'Found on the Registry Trust register',
   ccj: 'County court judgment found',
+  // "NFI address <name> source found" — doc-confirmed for exactly
+  // personal_licence/right_to_buy (2026-09-17 pension-source capture,
+  // MatchX/07-reports-pension-source.md); the rest of the nfi_address-gated
+  // attributes follow the same pattern (same "still needs *some* label"
+  // precedent this file's own header comment describes).
+  address_council_tax: 'NFI address council tax source found',
+  address_council_tax_reduction_scheme: 'NFI address council tax reduction scheme source found',
+  address_deferred_pensions: 'NFI address deferred pensions source found',
+  address_housing_benefits: 'NFI address housing benefits source found',
+  address_housing_tenants: 'NFI address housing tenants source found',
+  address_payroll: 'NFI address payroll source found',
+  address_pensions: 'NFI address pensions source found',
+  address_pensions_gratuities: 'NFI address pensions gratuities source found',
+  address_personal_licence: 'NFI address personal licence source found',
+  address_right_to_buy: 'NFI address right to buy source found',
+  address_state_benefits: 'NFI address state benefits source found',
+  address_student_loans: 'NFI address student loans source found',
+  address_taxi_drivers: 'NFI address taxi drivers source found',
+  address_transport_pass: 'NFI address transport pass source found',
+  address_waiting_list: 'NFI address waiting list source found',
 };
 
 function labelFor(attribute: string): string {

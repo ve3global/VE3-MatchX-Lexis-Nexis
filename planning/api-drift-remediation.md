@@ -316,6 +316,37 @@ true`. Diffed field-for-field against the current implementation:
   overstates what's actually evidenced. Filed as its own item under
   EPIC-7a/7b/7c above; not touched in this pass.
 
+## New finding (2026-09-16 capture) — `report.user` was a stub; age-gating was over-broad
+
+Colleague-supplied `POST /reports` (inline) + response pair, `actions:
+["address-verification"]` only, no `age-verification` anywhere on the
+report. Diffed against the current implementation:
+
+- [x] **`report.user` was a hardcoded `{}` stub — fixed 2026-09-17.** Both
+  this capture and the 2026-09-08 `pensions.json` one show a real
+  `{id, username}` object (`"user": {"id": "25ea6f9b-...",
+  "username": "VE3IDUTEST01"}`), sourced from the caller's own
+  `UserProfile` — same auto-create-on-first-access pattern already used by
+  `serializeScorecard`. Added `scorecards/service.ts#getUserSummary`
+  (shares the upsert with the existing `getUsername`) and threaded it
+  through `reports/routes.ts` into `serializeReport`.
+- [x] **`context.age_min`/`age_max` were gated on "address-verification OR
+  age-verification" — narrowed to age-verification only, fixed
+  2026-09-17.** This capture runs address-verification alone and gets no
+  `age_min`/`age_max` keys in context at all (not even `null` — absent
+  entirely), contradicting the prior "either action" reading of the
+  2026-09-03/09-10 captures (which happened to always have age-verification
+  present alongside address-verification, so the two were never
+  disambiguated until now). See `reports/service.ts`'s `serializeReport`.
+- [x] **`config: {age_min, age_max}` sent at the top level of an inline
+  `POST /reports` body has no effect — confirmed, not a gap.** The
+  response's `context`/`attributes` show zero trace of the submitted
+  `age_min: 50, age_max: 70`. `createReportSchema` has no `config` field at
+  all, so Zod's default strip-unknown-keys behavior already silently drops
+  it — matches the capture with no code change needed. (Distinct from
+  address-verification's own action-level `config.full_er`/
+  `config.nfi_address`, which is real and already wired.)
+
 ## Confirmed solid, no action needed
 
 `POST /oauth/token` (both auth forms fixed 2026-09-03, see above),

@@ -8,6 +8,7 @@ import { faultInjection } from './middleware/faultInjection.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
 import { addressLookupRouter } from './modules/addressLookup/routes.js';
 import { authRouter } from './modules/auth/routes.js';
+import { clientsRouter } from './modules/clients/routes.js';
 import { healthRouter } from './modules/health/routes.js';
 import { notificationsRouter } from './modules/notifications/routes.js';
 import { reportsRouter } from './modules/reports/routes.js';
@@ -33,6 +34,10 @@ export function createApp(): Express {
   // Unauthenticated routes — must be registered before the global auth
   // middleware below (LN8: exempt from bearer auth).
   api.use(authRouter);
+  // Also unauthenticated (a caller has no bearer token before it has
+  // credentials) — gated by its own shared provisioning key instead, see
+  // modules/clients/routes.ts.
+  api.use(clientsRouter);
 
   api.use(auth);
   api.use(activityLog);

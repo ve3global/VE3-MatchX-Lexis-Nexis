@@ -129,6 +129,31 @@ request, regardless of body content.
 - This error/validation shape is documented once here and reused identically
   across every epic/endpoint — no per-epic reinvention.
 
+## Client provisioning (replica-only extension)
+
+No ticket (LN1-LN61) and no doc endpoint covers this — the only client
+provisioning path before it existed was `prisma/seed.ts`'s hardcoded demo
+client, a one-time DB seed, not a runtime capability. Added to support
+minting real tenant credentials on demand against a shared deployment.
+
+- `POST /clients` mints a fresh `client_id`/`client_secret` pair, returning
+  the plaintext secret exactly once (only its bcrypt hash is persisted,
+  same convention the seed script already uses). No rotation/regenerate
+  endpoint exists yet — losing the secret means provisioning a new client.
+- Mounted pre-auth (`src/modules/clients/routes.ts`, alongside `/oauth/token`
+  in `app.ts`) since a caller can't hold a bearer token before it has
+  credentials. Gated instead by a single shared secret sent as the
+  `X-LN-Replica-Provision-Key` header, compared against the
+  `CLIENT_PROVISION_KEY` env var in constant time. Deliberately a static
+  shared secret, not per-caller/rotatable — the threat model is "an
+  ordinary API consumer can't self-provision," not defense against a
+  leaked operator secret.
+- Fails closed: if `CLIENT_PROVISION_KEY` isn't set at all, the route
+  500s rather than accepting any/no key — the endpoint is inert until an
+  operator deliberately configures it.
+- `name` is not required to be unique — `client_id` (the actual generated
+  identifier) always is.
+
 ## Testing philosophy
 
 - Integration tests (Vitest + Supertest) per epic, against a running
