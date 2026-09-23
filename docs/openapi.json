@@ -43,6 +43,19 @@
         }
       }
     },
+    "/lexis-nexis/clients": {
+      "post": {
+        "tags": [
+          "extension"
+        ],
+        "summary": "Replica-only extension — not part of the documented API (see README.md).",
+        "responses": {
+          "200": {
+            "description": "See planning/specs for this route's response shape."
+          }
+        }
+      }
+    },
     "/lexis-nexis/address-lookup": {
       "post": {
         "tags": [
