@@ -154,6 +154,53 @@ minting real tenant credentials on demand against a shared deployment.
 - `name` is not required to be unique — `client_id` (the actual generated
   identifier) always is.
 
+## Run simulation (replica-only extension)
+
+No ticket (LN1-LN61) and no doc endpoint covers this — see
+`.scratch/run-simulation/spec.md` and `CONTEXT.md`'s "Run" entry. Built so a
+QA batch of real records (spanning several different checks — credit, NFI,
+verification, address lookup) can be shaped into a configured percentage mix
+of outcomes, then reported on afterward.
+
+- `POST /runs` creates a run from a `distribution` (`{status, weight}` pairs
+  over exactly `200, 422, 429, 500, 502, 503, 504`, weights summing to 100)
+  and an optional, purely informational `expected_requests`. `GET /runs/{id}`
+  reports the running tally; `POST /runs/{id}/close` retires it. Scoped to
+  the creating client, like every other resource in this app.
+- Any real request to any real endpoint carrying `X-LN-Replica-Run-Id: <run_id>`
+  gets an independent weighted roll against that run's distribution. A `200`
+  roll calls through to completely real, unmodified business logic; `422`/
+  `429`/a 5xx roll fabricates that response instead, irrespective of whether
+  the request's own data is actually valid — a deliberate departure from
+  fault injection, which never touches `422`/`429`.
+- Fabricated bodies are indistinguishable from the real thing a client would
+  otherwise see for that status: `5xx` reuses fault injection's own shape
+  (`{message, correlationId, injected: true}`); `429` reuses the real rate
+  limiter's own shape (`{message, retry_after_seconds}` plus `Retry-After`);
+  `422` uses a fixed generic shape (`errors._run`, code `1319`) deliberately
+  distinct from real field-level validation errors.
+- `src/middleware/runInjection.ts` is mounted after `auth` (needs
+  `req.client` to enforce per-client run ownership — unlike fault injection,
+  which runs before `auth`) and before `activityLog`/`rateLimiter`, so a
+  fabricated outcome bypasses both entirely; a `200` roll proceeds through
+  the real chain, including the real rate limiter, completely unaffected.
+- Fails open: a missing header, or one naming a run that doesn't exist,
+  belongs to a different client, or is `CLOSED`, is treated identically —
+  the request proceeds normally, same fail-open philosophy fault injection
+  already uses for an out-of-whitelist value.
+- No cap or auto-expiry — `expected_requests` is never enforced, only shown
+  for comparison on the report. A run rolls independently forever until
+  explicitly closed, since total call volume per run can't be known upfront
+  (different record subsets need different checks).
+- Every roll — real or fabricated — is recorded as a row in an append-only
+  `RunEvent` log (a plain insert, never an UPDATE on a shared counter row)
+  rather than a `PostgresRateLimitStore`-style atomic-upsert counter — at
+  high volume, a shared counter row would take an UPDATE lock on every
+  single tagged request, all contending for the same row. `GET /runs/{id}`
+  aggregates the log into a tally via `COUNT`/`GROUP BY` at read time
+  instead, since reads are rare (an occasional progress check) while writes
+  are the hot path.
+
 ## Testing philosophy
 
 - Integration tests (Vitest + Supertest) per epic, against a running

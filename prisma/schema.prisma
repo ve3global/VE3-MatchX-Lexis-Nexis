@@ -28,6 +28,7 @@ model Client {
   company                   Company?
   userOptions               UserOptions?
   activityLogs              ActivityLog[]
+  runs                      Run[]
 
   @@map("clients")
 }
@@ -320,6 +321,51 @@ model RateLimitCounter {
   resetAt   DateTime @map("reset_at")
 
   @@map("rate_limit_counters")
+}
+
+// Response-simulation run (replica-only extension, see constitution.md and
+// CONTEXT.md's "Run" glossary entry) — .scratch/run-simulation/spec.md.
+// `distribution` is a JSON array of `{status, weight}`, validated at
+// creation time (src/modules/runs/schema.ts) so it's never re-validated on
+// read. `expectedRequests` is purely informational (see RunEvent below);
+// it's never read as an enforced cap by the injection middleware.
+enum RunStatus {
+  ACTIVE
+  CLOSED
+}
+
+model Run {
+  id               String     @id @default(uuid())
+  clientId         String     @map("client_id")
+  client           Client     @relation(fields: [clientId], references: [id])
+  distribution     Json
+  expectedRequests Int?       @map("expected_requests")
+  status           RunStatus  @default(ACTIVE)
+  createdAt        DateTime   @default(now()) @map("created_at")
+  closedAt         DateTime?  @map("closed_at")
+  events           RunEvent[]
+
+  @@map("runs")
+}
+
+// Append-only event log — one row per roll the injection middleware makes,
+// never updated. Deliberately not a shared per-status counter row: a
+// counter would need an atomic UPDATE on every single tagged request, all
+// contending for the same row's lock under high-volume traffic (the exact
+// bottleneck RateLimitCounter already has, acceptable there only because
+// its real limit is a mere 10 req/sec). A plain INSERT has nothing to
+// contend on. GET /runs/{id} (src/modules/runs/service.ts) aggregates this
+// into a tally via COUNT/GROUP BY at read time instead — reads are rare
+// (an occasional progress check); writes are the hot path.
+model RunEvent {
+  id        String   @id @default(uuid())
+  runId     String   @map("run_id")
+  run       Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  status    Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([runId, status])
+  @@map("run_events")
 }
 
 model ActivityLog {
