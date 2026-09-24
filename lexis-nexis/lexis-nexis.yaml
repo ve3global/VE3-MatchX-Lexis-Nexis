@@ -27,12 +27,12 @@ spec:
           image: 802854082645.dkr.ecr.eu-west-2.amazonaws.com/matchx-prod-ln-replica:IMAGE_TAG
           imagePullPolicy: Always
           env:
-            - name: DATABASE_URL
+            - name: DATABASE_URL 
               valueFrom:
                 secretKeyRef:
-                  name: database-url
+                  name: lexis-nexis-secret
                   key: DATABASE_URL
-            - name: NODE_ENV  
+            - name: CLIENT_PROVISION_KEY  
               valueFrom:
                 secretKeyRef:
                   name: lexis-nexis-secret
