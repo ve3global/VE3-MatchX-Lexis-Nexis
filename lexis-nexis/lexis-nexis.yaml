@@ -21,7 +21,7 @@ spec:
       annotations:
         reloader.stakater.com/auto: "true"    
     spec:
-      serviceAccountName: secrets-sa
+      serviceAccountName: rds-secrets-sa
       containers:
         - name: lexis-nexis
           image: 802854082645.dkr.ecr.eu-west-2.amazonaws.com/matchx-prod-ln-replica:IMAGE_TAG
