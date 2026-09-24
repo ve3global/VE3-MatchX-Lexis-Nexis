@@ -1,4 +1,4 @@
-name: Deploy Dev
+name: Deploy Prod
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
       AWS_DEFAULT_REGION: ${{ secrets.DEV_AWS_DEFAULT_REGION  }}
       AWS_ACCOUNT_ID: ${{ secrets.PROD_AWS_ACCOUNT_ID  }}
       AWS_CLUSTER_NAME: ${{ secrets.PROD_AWS_CLUSTER_NAME  }}
-      IMAGE_REPO_NAME: ${{ secrets.LN_IMAGE_REPO_NAME  }}
+      IMAGE_REPO_NAME: ${{ secrets.PROD_LN_IMAGE_REPO_NAME  }}
       DOCKERFILE: lexis-nexis/Dockerfile
       NAMESPACE: deploy
       DEPLOYMENT_NAME: matchx-lexis-nexis

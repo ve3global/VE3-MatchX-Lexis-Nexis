@@ -24,7 +24,7 @@ spec:
       serviceAccountName: secrets-sa
       containers:
         - name: lexis-nexis
-          image: 258219590636.dkr.ecr.eu-west-2.amazonaws.com/matchx-ln-replica:IMAGE_TAG
+          image: 802854082645.dkr.ecr.eu-west-2.amazonaws.com/matchx-prod-ln-replica:IMAGE_TAG
           imagePullPolicy: Always
           env:
             - name: DATABASE_URL
@@ -32,7 +32,7 @@ spec:
                 secretKeyRef:
                   name: database-url
                   key: DATABASE_URL
-            - name: CLIENT_PROVISION_KEY  
+            - name: NODE_ENV  
               valueFrom:
                 secretKeyRef:
                   name: lexis-nexis-secret
