@@ -93,6 +93,16 @@ claiming doc parity. Currently:
   (500) rather than accepting any/no key. The plaintext `client_secret` is
   returned exactly once, in the creation response — there's no rotation or
   regenerate endpoint yet.
+- `POST /runs`, `GET /runs/{id}`, `POST /runs/{id}/close` — a client-scoped,
+  percentage-driven response-simulation profile (see `CONTEXT.md`'s "Run"
+  entry and `.scratch/run-simulation/spec.md`). Any real request to any real
+  endpoint carrying `X-LN-Replica-Run-Id: <run_id>` gets an independent
+  weighted roll against the run's configured `distribution`
+  (`200, 422, 429, 500, 502, 503, 504`) — a `200` roll proceeds through real
+  business logic, everything else fabricates that response irrespective of
+  the request's own data, bypassing the real rate limiter in the process.
+  `GET /runs/{id}` reports the running tally. No cap or expiry; stays active
+  until explicitly closed.
 - `POST /oauth/token/revoke` — revoke a client's active tokens (LN9)
 - `GET /addresses`, `GET /addresses/search`, `GET /addresses/{reference}` —
   convenience aliases delegating to `POST /address-lookup` (LN10-12)

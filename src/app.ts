@@ -6,6 +6,7 @@ import { correlationId } from './middleware/correlationId.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { faultInjection } from './middleware/faultInjection.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
+import { runInjection } from './middleware/runInjection.js';
 import { addressLookupRouter } from './modules/addressLookup/routes.js';
 import { authRouter } from './modules/auth/routes.js';
 import { clientsRouter } from './modules/clients/routes.js';
@@ -13,6 +14,7 @@ import { healthRouter } from './modules/health/routes.js';
 import { notificationsRouter } from './modules/notifications/routes.js';
 import { reportsRouter } from './modules/reports/routes.js';
 import { reportTypesRouter } from './modules/reportTypes/routes.js';
+import { runsRouter } from './modules/runs/routes.js';
 import { scorecardsRouter } from './modules/scorecards/routes.js';
 import { usersRouter } from './modules/users/routes.js';
 import { webhooksRouter } from './modules/webhooks/routes.js';
@@ -40,6 +42,7 @@ export function createApp(): Express {
   api.use(clientsRouter);
 
   api.use(auth);
+  api.use(runInjection);
   api.use(activityLog);
   api.use(rateLimiter);
 
@@ -50,6 +53,7 @@ export function createApp(): Express {
   api.use(notificationsRouter);
   api.use(webhooksRouter);
   api.use(usersRouter);
+  api.use(runsRouter);
 
   app.use(API_PREFIX, api);
 

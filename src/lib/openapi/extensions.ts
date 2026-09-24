@@ -13,6 +13,9 @@ import type { RouteInfo } from './collectRoutes.js';
  */
 const EXTENSION_ROUTES_UNPREFIXED: RouteInfo[] = [
   { method: 'POST', path: '/clients' }, // client provisioning, no ticket — see README.md
+  { method: 'POST', path: '/runs' }, // response-simulation runs, no ticket — see .scratch/run-simulation/spec.md
+  { method: 'GET', path: '/runs/:id' },
+  { method: 'POST', path: '/runs/:id/close' },
   { method: 'POST', path: '/oauth/token/revoke' }, // EPIC-2, LN9
   { method: 'GET', path: '/addresses' }, // EPIC-3, LN10
   { method: 'GET', path: '/addresses/search' }, // EPIC-3, LN11
