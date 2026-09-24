@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: matchx-lexis-nexis
-  namespace: deploy
+  namespace: matchx
 spec:
   replicas: 1
   revisionHistoryLimit: 5
@@ -65,7 +65,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: matchx-lexis-nexis-service
-  namespace: deploy
+  namespace: matchx
 spec:
   type: ClusterIP   
   selector:
@@ -78,7 +78,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: lexis-nexis-hpa
-  namespace: deploy
+  namespace: matchx
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
