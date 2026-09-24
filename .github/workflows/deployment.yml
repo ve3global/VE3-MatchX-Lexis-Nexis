@@ -17,7 +17,7 @@ jobs:
       AWS_CLUSTER_NAME: ${{ secrets.PROD_AWS_CLUSTER_NAME  }}
       IMAGE_REPO_NAME: ${{ secrets.PROD_LN_IMAGE_REPO_NAME  }}
       DOCKERFILE: lexis-nexis/Dockerfile
-      NAMESPACE: deploy
+      NAMESPACE: matchx
       DEPLOYMENT_NAME: matchx-lexis-nexis
       CONTAINER_NAME: lexis-nexis
 
