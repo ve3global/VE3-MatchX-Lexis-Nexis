@@ -143,5 +143,13 @@ claiming doc parity. Currently:
   without a code change if ever needed. See `Run 4 - Fault Injection
   (Demo)` in the Postman collection for a live demonstration.
 
+- **Rate limiting**: a per-client sliding-window limit (the real IDU doc
+  documents none), counted in the shared Postgres DB so it holds across
+  pods. `RATE_LIMIT_PER_SECOND` sets the limit (unset or invalid falls back
+  to `10`). `THROTTLE_MODE` picks the mode: `limiter` (the fallback) applies
+  the real limiter; `run` bypasses it entirely, so the only `429`s a
+  deployment returns are the ones simulation runs fabricate. Both are
+  deployment config only; no request header can switch the limiter off.
+
 Each is called out in its owning epic's `spec.md` under "Resolved
 conflicts".

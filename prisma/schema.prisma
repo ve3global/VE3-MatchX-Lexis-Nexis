@@ -318,7 +318,7 @@ model RateLimitCounter {
   key       String   @id @map("client_key")
   count     Int      @default(0)
   prevCount Int      @default(0) @map("prev_count")
-  resetAt   DateTime @map("reset_at")
+  resetAt   DateTime @map("reset_at") @db.Timestamptz(3)
 
   @@map("rate_limit_counters")
 }
