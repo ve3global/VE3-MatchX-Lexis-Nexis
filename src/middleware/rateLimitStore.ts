@@ -30,9 +30,7 @@ export class PostgresRateLimitStore implements Store {
   }
 
   async increment(key: string): Promise<ClientRateLimitInfo> {
-    const rows = await prisma.$queryRaw<
-      Array<{ count: number; prev_count: number; reset_at: Date }>
-    >`
+    const rows = await prisma.$queryRaw<Array<{ total_hits: number; reset_at: Date }>>`
       INSERT INTO rate_limit_counters AS c (client_key, count, prev_count, reset_at)
       VALUES (${key}, 1, 0, now() + (${this.windowMs} || ' milliseconds')::interval)
       ON CONFLICT (client_key) DO UPDATE SET
@@ -48,12 +46,19 @@ export class PostgresRateLimitStore implements Store {
           ELSE c.prev_count
         END,
         reset_at = CASE WHEN c.reset_at <= now() THEN now() + (${this.windowMs} || ' milliseconds')::interval ELSE c.reset_at END
-      RETURNING count, prev_count, reset_at;
+      -- The weighting is computed here against the same now() that set
+      -- reset_at, never against the pod's own clock: a pod running behind
+      -- the DB would otherwise see more than a full window remaining and
+      -- multiply prev_count past 100%, throttling clients well under the
+      -- limit. The fraction is clamped to [0, 1] for the same reason.
+      RETURNING
+        (count + floor(prev_count * LEAST(1, GREATEST(0,
+          EXTRACT(EPOCH FROM (reset_at - now())) * 1000 / ${this.windowMs}
+        ))))::int AS total_hits,
+        reset_at;
     `;
     const row = rows[0]!;
-    const fractionRemaining = Math.max(0, (row.reset_at.getTime() - Date.now()) / this.windowMs);
-    const weighted = row.count + Math.floor(row.prev_count * fractionRemaining);
-    return { totalHits: weighted, resetTime: row.reset_at };
+    return { totalHits: row.total_hits, resetTime: row.reset_at };
   }
 
   async decrement(key: string): Promise<void> {

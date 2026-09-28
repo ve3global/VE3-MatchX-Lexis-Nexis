@@ -129,6 +129,29 @@ request, regardless of body content.
 - This error/validation shape is documented once here and reused identically
   across every epic/endpoint — no per-epic reinvention.
 
+## Rate limiting (replica-only extension)
+
+The real IDU doc documents no general API rate limit; this one exists for
+demo and QA purposes (`src/middleware/rateLimiter.ts`).
+
+- Per-client sliding-window counter over 1-second windows, stored in the
+  shared Postgres DB (`src/middleware/rateLimitStore.ts`) so the count holds
+  across every pod. The window weighting is computed in SQL against the
+  DB's own `now()`, never a pod's clock, and the previous window's weight is
+  clamped to at most 100%. A pod clock running behind the DB used to inflate
+  the count and throttle clients well under the limit.
+- `RATE_LIMIT_PER_SECOND` sets the limit. Unset → `10`. Invalid (non-integer,
+  `0`, negative) → `10` with a logged warning. It never fails startup.
+- `THROTTLE_MODE` is `limiter` (the fallback when unset or invalid, the
+  primary use) or `run`. In `run` mode the real limiter is skipped for every
+  request, so a deployment's only `429`s are run-fabricated. This
+  deliberately switches off the run simulation's "`200`-rolled traffic
+  still hits the real limiter" rule, but only in deployments that opt in.
+- Both are deployment config only. No request header can switch the
+  limiter off, so a caller can't opt itself out.
+- Skipped under `NODE_ENV=test`; tests build their own limiter via
+  `createRateLimiter()`.
+
 ## Client provisioning (replica-only extension)
 
 No ticket (LN1-LN61) and no doc endpoint covers this — the only client
@@ -183,7 +206,8 @@ of outcomes, then reported on afterward.
   `req.client` to enforce per-client run ownership — unlike fault injection,
   which runs before `auth`) and before `activityLog`/`rateLimiter`, so a
   fabricated outcome bypasses both entirely; a `200` roll proceeds through
-  the real chain, including the real rate limiter, completely unaffected.
+  the real chain, including the real rate limiter, completely unaffected
+  (unless the deployment sets `THROTTLE_MODE=run`, see "Rate limiting").
 - Fails open: a missing header, or one naming a run that doesn't exist,
   belongs to a different client, or is `CLOSED`, is treated identically —
   the request proceeds normally, same fail-open philosophy fault injection
