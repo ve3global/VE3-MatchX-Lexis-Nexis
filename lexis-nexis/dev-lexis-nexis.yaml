@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: matchx-lexis-nexis
-  namespace: matchx
+  namespace: deploy
 spec:
   replicas: 1
   revisionHistoryLimit: 5
@@ -21,16 +21,16 @@ spec:
       annotations:
         reloader.stakater.com/auto: "true"    
     spec:
-      serviceAccountName: rds-secrets-sa
+      serviceAccountName: secrets-sa
       containers:
         - name: lexis-nexis
-          image: 802854082645.dkr.ecr.eu-west-2.amazonaws.com/matchx-prod-ln-replica:IMAGE_TAG
+          image: 258219590636.dkr.ecr.eu-west-2.amazonaws.com/matchx-ln-replica:IMAGE_TAG
           imagePullPolicy: Always
           env:
-            - name: DATABASE_URL 
+            - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: lexis-nexis-secret
+                  name: database-url
                   key: DATABASE_URL
             - name: CLIENT_PROVISION_KEY  
               valueFrom:
@@ -75,7 +75,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: matchx-lexis-nexis-service
-  namespace: matchx
+  namespace: deploy
 spec:
   type: ClusterIP   
   selector:
@@ -88,7 +88,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: lexis-nexis-hpa
-  namespace: matchx
+  namespace: deploy
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
