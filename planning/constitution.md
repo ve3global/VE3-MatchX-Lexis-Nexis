@@ -139,7 +139,9 @@ demo and QA purposes (`src/middleware/rateLimiter.ts`).
   across every pod. The window weighting is computed in SQL against the
   DB's own `now()`, never a pod's clock, and the previous window's weight is
   clamped to at most 100%. A pod clock running behind the DB used to inflate
-  the count and throttle clients well under the limit.
+  the count and throttle clients well under the limit. `reset_at` is
+  `TIMESTAMPTZ`, so `resetTime`/`RateLimit-Reset` are correct whatever the
+  DB session's `TimeZone` is, with no extra config.
 - `RATE_LIMIT_PER_SECOND` sets the limit. Unset → `10`. Invalid (non-integer,
   `0`, negative) → `10` with a logged warning. It never fails startup.
 - `THROTTLE_MODE` is `limiter` (the fallback when unset or invalid, the

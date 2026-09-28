@@ -1,4 +1,5 @@
 import type { ClientRateLimitInfo, Options, Store } from 'express-rate-limit';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 
 /**
@@ -25,12 +26,16 @@ import { prisma } from '../lib/prisma.js';
 export class PostgresRateLimitStore implements Store {
   private windowMs = 1000;
 
+  // Injectable so a test can run the store inside a transaction with its own
+  // session settings (e.g. a non-UTC TimeZone).
+  constructor(private readonly db: Prisma.TransactionClient = prisma) {}
+
   init(options: Options): void {
     this.windowMs = options.windowMs;
   }
 
   async increment(key: string): Promise<ClientRateLimitInfo> {
-    const rows = await prisma.$queryRaw<Array<{ total_hits: number; reset_at: Date }>>`
+    const rows = await this.db.$queryRaw<Array<{ total_hits: number; reset_at: Date }>>`
       INSERT INTO rate_limit_counters AS c (client_key, count, prev_count, reset_at)
       VALUES (${key}, 1, 0, now() + (${this.windowMs} || ' milliseconds')::interval)
       ON CONFLICT (client_key) DO UPDATE SET
@@ -62,12 +67,12 @@ export class PostgresRateLimitStore implements Store {
   }
 
   async decrement(key: string): Promise<void> {
-    await prisma.$executeRaw`
+    await this.db.$executeRaw`
       UPDATE rate_limit_counters SET count = GREATEST(count - 1, 0) WHERE client_key = ${key};
     `;
   }
 
   async resetKey(key: string): Promise<void> {
-    await prisma.$executeRaw`DELETE FROM rate_limit_counters WHERE client_key = ${key};`;
+    await this.db.$executeRaw`DELETE FROM rate_limit_counters WHERE client_key = ${key};`;
   }
 }

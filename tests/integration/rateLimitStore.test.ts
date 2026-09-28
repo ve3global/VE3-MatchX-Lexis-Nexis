@@ -77,4 +77,25 @@ describe('PostgresRateLimitStore', () => {
     // not 3 + 5 * ~10 as an unclamped fraction would give.
     expect(info.totalHits).toBe(3 + 5);
   });
+
+  it('reports the true window end regardless of the DB session time zone', async () => {
+    // A session far from UTC (UTC+14). Run inside a transaction so SET LOCAL
+    // scopes the zone to this one connection and the row rolls back after.
+    const ROLLBACK = new Error('rollback');
+    let resetTime: Date | undefined;
+    await prisma
+      .$transaction(async (tx) => {
+        await tx.$executeRaw`SET LOCAL TimeZone = 'Pacific/Kiritimati'`;
+        const zonedStore = new PostgresRateLimitStore(tx);
+        zonedStore.init({ windowMs: WINDOW_MS } as Options);
+        resetTime = (await zonedStore.increment(newKey())).resetTime;
+        throw ROLLBACK;
+      })
+      .catch((error: unknown) => {
+        if (error !== ROLLBACK) throw error;
+      });
+
+    // Within a second of now — not 14 hours off.
+    expect(Math.abs(resetTime!.getTime() - Date.now())).toBeLessThan(1000);
+  });
 });
