@@ -45,7 +45,7 @@ right status codes and messages. Two gaps stood in the way:
 7. As a developer, I want the report's embedded `address1`–`address5` fields to enforce a 64-character max, matching the real API's limit.
 8. As a developer, I want the report's embedded `address.postcode` field to enforce an 8-character max, matching the real API's limit.
 9. As a developer, I want Unicode letters (accented Latin, Cyrillic, Arabic, Hebrew, Greek, CJK) to be accepted in name fields without normalization, matching the real API's documented behavior.
-10. As a developer, I want a single ASCII apostrophe, single ASCII hyphen, and single space to be accepted in name fields, but never consecutively or at the start/end of the field.
+10. As a developer, I want ASCII apostrophes, hyphens, and spaces to be accepted in name fields, but never the same separator twice in a row and never at the start/end of the field (mixed runs like `Johnson- Kerr` are accepted — see `docs/adr/0001-name-separator-consecutiveness.md`).
 11. As an API client, I want smart/curly apostrophes and en/em dashes to be rejected (not silently treated as equivalent to ASCII apostrophe/hyphen), matching the real API's stricter-than-visually-similar behavior.
 12. As an operator running the live demo, I want the 3 demo runs to be independently runnable in the Postman GUI or via Newman, each fetching its own token, so I can run them in any order (just not chained back-to-back without a pause).
 13. As an operator, I want clear documentation that the 3 runs share rate-limit state on one client and must not be executed back-to-back with zero gap, so I don't accidentally get contaminated results.

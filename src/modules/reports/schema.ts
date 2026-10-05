@@ -27,13 +27,14 @@ const addressSchema = z.object({
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-// Unicode letter runs joined by at most one ASCII apostrophe/hyphen/space at
-// a time — this single pattern rejects leading/trailing separators AND
-// consecutive separators as a side effect of requiring a letter run on both
-// sides of every separator (see IDU_REST_FAQs_Input_Validation (Aug26).pdf).
-// Smart quotes and en/em dashes fall through since they're neither \p{L}
-// nor the specific ASCII chars in the class.
-const NAME_RE = /^\p{L}+(?:['\- ]\p{L}+)*$/u;
+// Unicode letter runs joined by runs of ASCII apostrophe/hyphen/space, where
+// each separator's lookahead forbids the SAME separator immediately after it
+// — so "--", "''" and double spaces are rejected but mixed runs like
+// "Johnson- Kerr" are accepted (docs/adr/0001-name-separator-consecutiveness.md,
+// IDU_REST_FAQs_Input_Validation (Aug26).pdf). Requiring a letter run at both
+// ends rejects leading/trailing separators. Smart quotes and en/em dashes
+// fall through since they're neither \p{L} nor the specific ASCII chars.
+const NAME_RE = /^\p{L}+(?:(?:'(?!')|-(?!-)| (?! ))+\p{L}+)*$/u;
 
 export const createReportSchema = z
   .object({

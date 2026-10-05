@@ -48,6 +48,7 @@ production — conflicts resolve as:
 | Report-type active/inactive (LN20/23/24) | Explicit lifecycle + reactivation | No such field on report-type response | Extension: additive `status: ACTIVE\|INACTIVE`; `DELETE` still returns doc's `204`; reactivation via labeled extension endpoint `POST /report-types/{id}/reactivate` |
 | Scorecard status/version (LN25-29) | draft/published/retired + versioning | No `status`/`version` field on scorecard response | Extension: additive `status`/`version` fields; enforcement layered into report-type create/update validation |
 | Scorecard delete-while-attached | LN28: "assigning a retired scorecard returns 400" | Doc: `DELETE` on an attached scorecard returns **422** (error 1241) | Implement doc's 422-on-attached-delete verbatim; retired/reassign rule is a separate extension check |
+| Name separator "consecutive" (error-handling-demo issue 01/03) | No two separators adjacent, of any kind | FAQ tables reject only repeated identical separators (`--`, `''`, double space); its "simple rule" says "no consecutive separators" | Repeated-identical only; mixed runs (`Johnson- Kerr`) accepted — `docs/adr/0001-name-separator-consecutiveness.md` |
 | EPIC-8 doc-parity check (LN61) | "parses the published API spec (OpenAPI)" | We only have a rendered PDF, not a raw OpenAPI file from LexisNexis | Generate our own OpenAPI spec from the replica's route/schema definitions and drift-test that against live routes in CI; the one-time human cross-check against the actual PDF stays a manual step |
 
 ## Ticket → epic map

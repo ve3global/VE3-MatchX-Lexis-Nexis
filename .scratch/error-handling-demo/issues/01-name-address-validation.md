@@ -56,3 +56,9 @@ and aren't known to be wrong.
 - [ ] `address.postcode` rejects a value over 8 characters
 - [ ] Full test suite (`npx vitest run`) stays green aside from the
       pre-existing, already-tracked webhooks/doc-parity failures
+
+## Comments
+
+- 2026-10-05: "consecutive" means the same separator repeated; mixed runs
+  like `Johnson- Kerr` are accepted. Superseded in part by
+  `03-name-mixed-separators.md` / `docs/adr/0001-name-separator-consecutiveness.md`.
