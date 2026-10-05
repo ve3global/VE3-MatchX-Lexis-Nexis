@@ -140,6 +140,44 @@ describe('reports', () => {
     expect(res.body.data.surname).toBe('Smith-Jones');
   });
 
+  // ADR-0001: only a repeat of the SAME separator is consecutive — mixed runs
+  // like "- " are accepted (e.g. "Johnson- Kerr" from MatchX pending records).
+  it('accepts mixed adjacent separators in name fields', async () => {
+    for (const surname of [
+      'Johnson- Kerr',
+      'Johnson -Kerr',
+      "O' Brien",
+      "D'-Arcy",
+      'Smith - Jones',
+      'Johnson- -Kerr',
+    ]) {
+      const res = await request(app)
+        .post('/lexis-nexis/reports')
+        .set(authed())
+        .send({ ...validInline, surname });
+      expect(res.status, surname).toBe(201);
+      expect(res.body.data.surname).toBe(surname);
+    }
+  });
+
+  it('still rejects repeated-same separators and leading/trailing mixed runs in surname', async () => {
+    for (const surname of [
+      'Mary--Jane',
+      "O''Connor",
+      'John  Smith',
+      '-Smith',
+      'Smith-',
+      'Smith -',
+    ]) {
+      const res = await request(app)
+        .post('/lexis-nexis/reports')
+        .set(authed())
+        .send({ ...validInline, surname });
+      expect(res.status, surname).toBe(422);
+      expect(res.body.errors.surname[0].code, surname).toBe(1287);
+    }
+  });
+
   it('treats an empty string as not-provided for optional/effectively-required name fields', async () => {
     // middlename is genuinely optional — "" is simply omitted.
     const withEmptyMiddlename = await request(app)
