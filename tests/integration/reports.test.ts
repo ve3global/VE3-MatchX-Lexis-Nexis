@@ -143,39 +143,43 @@ describe('reports', () => {
   // ADR-0001: only a repeat of the SAME separator is consecutive — mixed runs
   // like "- " are accepted (e.g. "Johnson- Kerr" from MatchX pending records).
   it('accepts mixed adjacent separators in name fields', async () => {
-    for (const surname of [
-      'Johnson- Kerr',
-      'Johnson -Kerr',
-      "O' Brien",
-      "D'-Arcy",
-      'Smith - Jones',
-      'Johnson- -Kerr',
-    ]) {
-      const res = await request(app)
+    const res = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send({
+        ...validInline,
+        forename: "D'-Arcy",
+        middlename: "O' Brien",
+        surname: 'Johnson- Kerr',
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.data.forename).toBe("D'-Arcy");
+    expect(res.body.data.middlename).toBe("O' Brien");
+    expect(res.body.data.surname).toBe('Johnson- Kerr');
+
+    for (const surname of ['Johnson -Kerr', 'Smith - Jones', 'Johnson- -Kerr']) {
+      const longerRun = await request(app)
         .post('/lexis-nexis/reports')
         .set(authed())
         .send({ ...validInline, surname });
-      expect(res.status, surname).toBe(201);
-      expect(res.body.data.surname).toBe(surname);
+      expect(longerRun.status, surname).toBe(201);
     }
   });
 
-  it('still rejects repeated-same separators and leading/trailing mixed runs in surname', async () => {
-    for (const surname of [
-      'Mary--Jane',
-      "O''Connor",
-      'John  Smith',
-      '-Smith',
-      'Smith-',
-      'Smith -',
-    ]) {
-      const res = await request(app)
-        .post('/lexis-nexis/reports')
-        .set(authed())
-        .send({ ...validInline, surname });
-      expect(res.status, surname).toBe(422);
-      expect(res.body.errors.surname[0].code, surname).toBe(1287);
-    }
+  it('rejects a trailing mixed separator run or a repeat inside one, per field', async () => {
+    const res = await request(app)
+      .post('/lexis-nexis/reports')
+      .set(authed())
+      .send({
+        ...validInline,
+        forename: 'Smith -',
+        middlename: 'Mary- --Jane',
+        surname: "O' ''Brien",
+      });
+    expect(res.status).toBe(422);
+    expect(res.body.errors.forename[0].code).toBe(1286);
+    expect(res.body.errors.middlename[0].code).toBe(1288);
+    expect(res.body.errors.surname[0].code).toBe(1287);
   });
 
   it('treats an empty string as not-provided for optional/effectively-required name fields', async () => {

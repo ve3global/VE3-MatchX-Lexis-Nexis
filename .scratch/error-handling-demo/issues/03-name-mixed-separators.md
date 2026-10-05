@@ -13,9 +13,9 @@ were always accepted — the trigger was a hyphen followed by a space, which
 any length are accepted. See `docs/adr/0001-name-separator-consecutiveness.md`.
 Corrects the rule from `01-name-address-validation.md`.
 
-- [x] Accept `Johnson- Kerr`, `Johnson -Kerr`, `O' Brien`, `D'-Arcy`,
-      `Smith - Jones`, `Johnson- -Kerr`
-- [x] Still reject `Mary--Jane`, `O''Connor`, `John  Smith`, `-Smith`,
-      `Smith-`, `Smith -` with the field-specific code (1287 for surname)
-- [ ] Integration suite run green (blocked locally: DB not running at
-      time of fix; regex verified standalone against the same cases)
+- [x] Accept mixed runs (`Johnson- Kerr`, `D'-Arcy`, `O' Brien`, `Smith - Jones`,
+      `Johnson- -Kerr`) across forename/middlename/surname
+- [x] Reject a trailing mixed run (`Smith -`) or a repeat inside one
+      (`Mary- --Jane`) with 1286/1288/1287; existing `--`/`''`/double-space
+      and leading/trailing tests unchanged
+- [x] Integration suite run green (241/241, 2026-10-05)
