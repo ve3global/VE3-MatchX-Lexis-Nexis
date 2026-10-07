@@ -224,18 +224,12 @@ PR #39 merged.
 |---|---|---|
 | `idu-rest-api-documentation.pdf` | `IDU_REST_API_Documentation.pdf` | The API contract — paths, shapes, error codes 1000–1348 |
 | `idu-faqs-input-validation-2026-08.pdf` | `IDU_REST_FAQs_Input_Validation (Aug26).pdf` | Name/address character rules (ADR-0001) |
-| `lexisnexis-nfr-feature-validation-checklist.docx` | `LexisNexis_NFR_Feature_Validation_Checklist.docx` | Non-functional/feature validation checklist |
+| `lexisnexis-nfr-feature-validation-checklist.docx` | `LexisNexis_NFR_Feature_Validation_Checklist.docx` | NFR & feature sign-off checklist for the **MatchX** LexisNexis batch pipeline (the consumer side — e.g. NFR-P1: ≤ 10 req/s across Address + Credit calls). Not a LexisNexis document |
 
 Code comments and planning docs cite them by **original name**.
 
-> **Until the checklist item below is done, these files exist only in the
-> outgoing owner's local Downloads folder** — `docs/reference/` doesn't
-> exist yet. If they leave without copying them, ask LexisNexis (contact
-> above) for fresh copies.
-
 ## Before-you-leave checklist (outgoing owner)
 
-- [ ] Copy the three reference documents into `docs/reference/` (names above) and commit
 - [ ] Fill in every _TODO_ in People & access
 - [ ] Delete merged branches, local and remote — checked 2026-10-07, every commit already on `origin/main`: `fix/rate-limiter-throttling`, `run-simulation-api`, `fix/name-mixed-separators`, `client-provisioning-api`, `pension-source-api`, `LN-replica-test-suits`, `chore/dependabot-fixes`
 - [ ] `devops`, `devops-dev` are also fully merged — confirm with DevOps they aren't long-lived before deleting
