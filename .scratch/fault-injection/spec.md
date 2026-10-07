@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # On-demand fault injection: caller-triggered 5xx responses for client resilience testing
 
