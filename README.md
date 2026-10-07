@@ -6,6 +6,10 @@ for development and automated testing. Same endpoints, same request/response
 shapes, same validation error codes as the documented API, with deterministic
 fake results per subject.
 
+**New to this repo? Start with [docs/HANDOVER.md](docs/HANDOVER.md)**, then
+[docs/runbook.md](docs/runbook.md) for running, deploying and operating it.
+Vocabulary is in [CONTEXT.md](CONTEXT.md); decisions in [docs/adr/](docs/adr/).
+
 See [planning/constitution.md](planning/constitution.md) for the full
 architecture, the doc-vs-ticket precedence rules, and the ticket → epic map.
 Phase 1 (core: auth, address lookup, reports, report types, scorecards,
