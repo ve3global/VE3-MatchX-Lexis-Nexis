@@ -36,25 +36,25 @@ and aren't known to be wrong.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `forename`/`middlename`/`surname` reject digits, symbols, and
+- [x] `forename`/`middlename`/`surname` reject digits, symbols, and
       punctuation with the correct field-specific code (1286/1287/1288)
-- [ ] `forename`/`middlename`/`surname` reject a leading/trailing hyphen,
+- [x] `forename`/`middlename`/`surname` reject a leading/trailing hyphen,
       apostrophe, or space
-- [ ] `forename`/`middlename`/`surname` reject consecutive hyphens,
+- [x] `forename`/`middlename`/`surname` reject consecutive hyphens,
       apostrophes, or spaces
-- [ ] `forename`/`middlename`/`surname` reject smart/curly apostrophes and
+- [x] `forename`/`middlename`/`surname` reject smart/curly apostrophes and
       en/em dashes
-- [ ] `forename`/`middlename`/`surname` accept Unicode/accented letters, a
+- [x] `forename`/`middlename`/`surname` accept Unicode/accented letters, a
       single correctly-placed hyphen, and a single correctly-placed
       apostrophe (e.g. `O'Brien`, `Smith-Jones`, `García`) — acceptance-side
       coverage, not just rejection-side
-- [ ] `forename`/`middlename`/`surname` reject a value over 64 characters
+- [x] `forename`/`middlename`/`surname` reject a value over 64 characters
       and accept one at exactly 64
-- [ ] `address1`–`address5` reject a value over 64 characters
-- [ ] `address.postcode` rejects a value over 8 characters
-- [ ] Full test suite (`npx vitest run`) stays green aside from the
+- [x] `address1`–`address5` reject a value over 64 characters
+- [x] `address.postcode` rejects a value over 8 characters
+- [x] Full test suite (`npx vitest run`) stays green aside from the
       pre-existing, already-tracked webhooks/doc-parity failures
 
 ## Comments
@@ -62,3 +62,5 @@ and aren't known to be wrong.
 - 2026-10-05: "consecutive" means the same separator repeated; mixed runs
   like `Johnson- Kerr` are accepted. Superseded in part by
   `03-name-mixed-separators.md` / `docs/adr/0001-name-separator-consecutiveness.md`.
+- 2026-10-07: verified done — every checkbox above is covered by
+  `tests/integration/reports.test.ts`; suite green.

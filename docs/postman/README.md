@@ -18,8 +18,9 @@ generator appends the prefix per-request, so don't add it into `base_url`
 yourself or every path doubles up.
 
 **`/up` isn't reachable at all against the Live environment** — the k8s
-ingress only routes `/lexis-nexis/*` to the service (see
-`lexis-nexis/ingress.yaml`), and the app deliberately mounts health
+ingress only routes `/lexis-nexis/*` to the service (the ingress now
+lives in the frontend's shared ALB ingress, outside this repo — moved out of
+`lexis-nexis/ingress.yaml` in commit 105d9c2, 2026-09-15), and the app deliberately mounts health
 outside that prefix (readiness/liveness probes hit the pod directly,
 bypassing the ingress). The "00 - Health" folder is Local-only, and so
 are the two `GET /up` requests inside "Run 4 - Fault Injection (Demo)"

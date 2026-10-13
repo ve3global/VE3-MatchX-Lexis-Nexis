@@ -43,7 +43,7 @@ sub-resource's confidence level is documented in its own spec.md.
 | Epic | Status | Evidence confidence |
 |---|---|---|
 | EPIC-9 Notifications | done | Thin — only `message` (1190-1192) confirmed |
-| EPIC-10 Webhooks | done | Solid — url/secret/status/retry cluster (1295-1303, 1322-1324) |
+| EPIC-10 Webhooks | done (8 tasks still open in [tasks.md](specs/epic-10-webhooks/tasks.md): doc regeneration + 7 integration tests) | Solid — url/secret/status/retry cluster (1295-1303, 1322-1324) |
 | EPIC-11 Users module (self/company/activity-logs/options) | done | Mixed — solid for self/activity-logs, thinner for options, near-total guess for company |
 | EPIC-12 Remote-check lifecycle | done | Solid — 1312/1313/1321/1325/1338 unambiguously confirm a stateful lifecycle; supersedes EPIC-7c's synchronous remote-check design |
 
@@ -54,4 +54,13 @@ available after phase 2 was built best-effort from `errorCodes.ts` alone.
 A 2026-08-14 cross-check against it found real path/action-name drift in
 several "done" epics — tracked in
 [api-drift-remediation.md](api-drift-remediation.md), to be fixed
-epic-by-epic.
+epic-by-epic. As of 2026-10-07, 22 items there are still open.
+
+### Work outside the epic structure
+
+Later features were specced in `.scratch/` (see `docs/agents/issue-tracker.md`)
+rather than as epics here, all shipped: error-handling demo + name/address
+validation, fault injection, Postgres-backed rate limiter + throttle mode,
+run simulation, and client provisioning (`POST /clients`, PR #29 — shipped
+without a spec). Open follow-ups live in
+`.scratch/handover-followups/`.

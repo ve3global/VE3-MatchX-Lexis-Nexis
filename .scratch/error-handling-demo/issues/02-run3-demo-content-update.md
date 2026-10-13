@@ -18,14 +18,20 @@ other two demo runs were already validated.
 
 **Blocked by:** 01 (Fix name and address field validation in report creation) — needs the real character-rule behavior to exist before a request can assert against it.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Run 3 includes a request submitting a malformed name and asserting
+- [x] Run 3 includes a request submitting a malformed name and asserting
       HTTP 422 with the correct field-specific code (1286/1287)
-- [ ] The Postman collection is regenerated from the generator script (not
+- [x] The Postman collection is regenerated from the generator script (not
       hand-edited) and committed
-- [ ] The updated Run 3 folder is live-validated via Newman against a real
+- [x] The updated Run 3 folder is live-validated via Newman against a real
       `npm run dev` instance, run in isolation (not chained with Run 1/2),
       with all assertions passing
-- [ ] `docs/postman/README.md`'s coverage/demo notes are updated to reflect
+- [x] `docs/postman/README.md`'s coverage/demo notes are updated to reflect
       the new request if the existing description no longer matches
+
+## Comments
+
+- 2026-10-07: verified done — Run 3 carries the malformed-name request
+  (422/1286), live-validated 8/8 requests, 16/16 assertions on 2026-08-20
+  (`docs/postman/README.md`).
