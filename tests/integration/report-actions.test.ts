@@ -94,6 +94,40 @@ describe('report actions', () => {
     expect(res1.body.data.attributes).toEqual(res2.body.data.attributes);
   });
 
+  it('returns Electoral Register sources exactly when address_verified, on the action and on GET', async () => {
+    const outcomes: boolean[] = [];
+    // 26 distinct subjects: enough to land at least one in the ~5% unverified bucket.
+    for (const letter of 'abcdefghijklmnopqrstuvwxyz') {
+      const surname = `Tester${letter}`;
+      const created = await request(app)
+        .post('/lexis-nexis/reports')
+        .set(authed())
+        .send({
+          forename: 'Bella',
+          surname,
+          dob: '1980-01-01',
+          address: { address1: '1 Test Street', postcode: 'TE1 1ST' },
+          enduser_agreement: true,
+        });
+      const id = created.body.data.id;
+      const ran = await request(app)
+        .post(`/lexis-nexis/reports/${id}/actions/address-verification`)
+        .set(authed())
+        .send({});
+      const fetched = await request(app).get(`/lexis-nexis/reports/${id}`).set(authed());
+
+      for (const res of [ran, fetched]) {
+        const hasErSource = res.body.data.address_verification.sources.some(
+          (s: { source: string }) => /^ER\d{4}$/.test(s.source),
+        );
+        expect(hasErSource, surname).toBe(res.body.data.attributes.address_verified);
+      }
+      outcomes.push(ran.body.data.attributes.address_verified);
+    }
+    expect(outcomes).toContain(true);
+    expect(outcomes).toContain(false);
+  });
+
   it('rejects a malformed request body with the action-specific error code', async () => {
     const id = await createInlineReport();
     const res = await request(app)

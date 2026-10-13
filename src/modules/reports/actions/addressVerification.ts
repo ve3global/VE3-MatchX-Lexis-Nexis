@@ -174,7 +174,11 @@ function buildResponse(ctx: ActionContext, attributes: Record<string, unknown>) 
   const erCount = int(s('er_count'), 3, 8);
   const address = ctx.subject.address ?? {};
 
-  const sources = electoralRollSources(s('er_years'), lastSeen, erCount);
+  // `address_verified` ⇔ at least one electoral-roll source: an unverified
+  // subject gets no `ER<year>` entries, though NFI ones may still follow
+  // (.scratch/address-verification-consistency/issues/01). No capture shows
+  // an unverified response, so the rest of this block is left as-is.
+  const sources = verified ? electoralRollSources(s('er_years'), lastSeen, erCount) : [];
   if (nfiAddress) {
     for (const nfi of NFI_SOURCES) {
       if (attributes[nfi.key]) {
