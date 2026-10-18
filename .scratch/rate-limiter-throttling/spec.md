@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Rate limiter: fix clock-skew over-throttling, make the limit configurable, add a throttle mode
 

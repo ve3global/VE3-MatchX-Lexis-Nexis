@@ -52,7 +52,8 @@ exits) if it can't reach the database.
 
 Two complementary layers:
 
-- **`npm test`** — the Vitest + Supertest integration suite (153 tests),
+- **`npm test`** — the Vitest + Supertest integration suite (run `npm test` for the
+  current count; needs Postgres up — see `docker-compose.yml`),
   run in-process against the Express app directly (no real network).
 - **`docs/postman/`** — a full Postman collection (135 requests across
   every epic, phase 1 and phase 2), runnable interactively or headless via
@@ -61,7 +62,7 @@ Two complementary layers:
   in-process suite doesn't touch. See
   [docs/postman/README.md](docs/postman/README.md) for coverage details
   and the bugs this live-testing pass caught. The Vitest suite passes in
-  full (153/153); the Postman collection passes cleanly per folder (each
+  full; the Postman collection passes cleanly per folder (each
   folder validated individually via Newman) — running the entire
   collection unfiltered in one go triggers real, shared rate-limit state
   across folders by design (see `docs/postman/README.md`), so that's not

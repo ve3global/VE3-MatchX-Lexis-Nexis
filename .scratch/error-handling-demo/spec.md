@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Accurate error handling for the internal demo: rate limiting + 3 Postman runs + name/address validation fix
 
