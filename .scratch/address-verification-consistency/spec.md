@@ -28,3 +28,4 @@ rule scoring 10.
 |---|---|---|
 | 01 | [ER sources only when address verified](issues/01-er-sources-only-when-verified.md) | done |
 | 02 | [QA override to force "not verified"](issues/02-qa-override-not-verified.md) | needs-triage |
+| 03 | [NFI sources dated inside MatchX's recency window](issues/03-nfi-source-recency.md) | done |

@@ -38,3 +38,11 @@ created it (not global), and it can fabricate `422`/`429` as well as 5xx
 running tally of every outcome served, retrievable via `GET /runs/{id}`.
 _Avoid_: fault injection, QA override (all three are deliberately distinct
 — see above)
+
+**NFI exercise date**:
+The single date shared by every NFI source in one subject's
+address-verification response (the `recency` on each `NFI_*` source). It
+reflects how the National Fraud Initiative works: a periodic bulk
+data-matching exercise, not a per-source feed. It's distinct from an
+Electoral Register source's `recency`, which varies year by year.
+_Avoid_: NFI recency (when it suggests a separate date per source)
