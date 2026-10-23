@@ -38,6 +38,21 @@ function electoralRollSources(seed: number, fromYear: number, count: number) {
   });
 }
 
+/**
+ * One NFI exercise date per subject, shared by every NFI source — both
+ * captures (MatchX/06, MatchX/07) show all of a response's NFI entries on
+ * the same date. The captures' fixed `2020-09-14` sat outside MatchX's
+ * NFI recency window, so no NFI source could ever score; a per-subject
+ * 1–48 months back lands some inside a 24-month window and some outside
+ * (.scratch/address-verification-consistency/issues/03).
+ */
+function nfiExerciseDate(seed: number): string {
+  const date = new Date();
+  date.setUTCDate(14);
+  date.setUTCMonth(date.getUTCMonth() - int(seed, 1, 48));
+  return date.toISOString().slice(0, 10);
+}
+
 /** Shared by `build`/`buildResponse` so the request-body cast isn't repeated. */
 function getConfig(ctx: ActionContext): { full_er?: boolean; nfi_address?: boolean } {
   return (ctx.requestBody.config ?? {}) as { full_er?: boolean; nfi_address?: boolean };
@@ -180,9 +195,10 @@ function buildResponse(ctx: ActionContext, attributes: Record<string, unknown>) 
   // an unverified response, so the rest of this block is left as-is.
   const sources = verified ? electoralRollSources(s('er_years'), lastSeen, erCount) : [];
   if (nfiAddress) {
+    const nfiRecency = nfiExerciseDate(s('nfi_recency_months'));
     for (const nfi of NFI_SOURCES) {
       if (attributes[nfi.key]) {
-        sources.push({ source: nfi.source, description: nfi.description, recency: '2020-09-14' });
+        sources.push({ source: nfi.source, description: nfi.description, recency: nfiRecency });
       }
     }
   }
