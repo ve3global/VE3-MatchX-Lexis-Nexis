@@ -30,7 +30,7 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: database-url
+                  name: lexis-nexis-secret
                   key: DATABASE_URL
             - name: CLIENT_PROVISION_KEY  
               valueFrom:
