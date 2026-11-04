@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matchx-lexis-nexis
+  namespace: matchx
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: matchx-lexis-nexis
+  template:
+    metadata:
+      labels:
+        app: matchx-lexis-nexis
+      annotations:
+        reloader.stakater.com/auto: "true"    
+    spec:
+      serviceAccountName: rds-secrets-sa
+      containers:
+        - name: lexis-nexis
+          image: 710045722746.dkr.ecr.eu-west-2.amazonaws.com/matchx-stage-lexis-nexis:IMAGE_TAG
+          imagePullPolicy: Always
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: database-url
+                  key: DATABASE_URL
+            - name: CLIENT_PROVISION_KEY  
+              valueFrom:
+                secretKeyRef:
+                  name: lexis-nexis-secret
+                  key: CLIENT_PROVISION_KEY
+            - name: RATE_LIMIT_PER_SECOND  
+              valueFrom:
+                secretKeyRef:
+                  name: lexis-nexis-secret
+                  key: RATE_LIMIT_PER_SECOND
+            - name: THROTTLE_MODE  
+              valueFrom:
+                secretKeyRef:
+                  name: lexis-nexis-secret
+                  key: THROTTLE_MODE
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /up
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /up
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3          
+          resources:
+            requests:
+              cpu: "150m"
+              memory: "256Mi"
+            limits:
+              cpu: "300m"
+              memory: "500Mi"          
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: matchx-lexis-nexis-service
+  namespace: matchx
+spec:
+  type: ClusterIP   
+  selector:
+    app: matchx-lexis-nexis
+  ports:
+    - port: 80
+      targetPort: 3000
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: lexis-nexis-hpa
+  namespace: matchx
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: matchx-lexis-nexis
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 70
