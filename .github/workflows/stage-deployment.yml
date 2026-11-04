@@ -3,7 +3,7 @@ name: Deploy Stage
 on:
   push:
     branches:
-      - prod
+      - stage
     tags-ignore:
       - 'v*'
 
